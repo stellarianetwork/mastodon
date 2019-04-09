@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg width="100%" height="100%" viewBox="0 0 250 250" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:1.41421;">
-    <g transform="matrix(1,0,0,1,-1550,-1735)">
-        <g id="logo_transparent" transform="matrix(0.294118,0,0,1.42126,178.235,1735)">
-            <rect x="4664" y="0" width="850" height="175.9" style="fill:none;"/>
-            <g transform="matrix(48.9369,0,0,10.1271,-188018,-358.693)">
-                <path d="M3946.04,46.655L3949.31,52.02L3952.38,49.882L3948.48,44.854L3954.41,43.616L3953.43,40.202L3947.66,42.078L3947.92,36.188L3944.13,36.188L3944.43,42.078L3938.62,40.202L3937.68,43.616L3943.57,44.854L3939.7,49.882L3942.78,52.02L3946.04,46.655Z" style="fill:white;fill-rule:nonzero;"/>
-            </g>
-        </g>
+    <rect id="logo" x="0" y="0" width="250" height="250" style="fill:none;"/>
+    <g>
+        <path d="M125,161.72L171.98,238.94L216.26,208.16L160.1,135.8L245.42,117.98L231.38,68.84L148.22,95.84L152,11.06L97.46,11.06L101.78,95.84L18.08,68.84L4.58,117.98L89.36,135.8L33.74,208.16L78.02,238.94L125,161.72Z" style="fill:white;fill-rule:nonzero;"/>
     </g>
 </svg>
