@@ -22,7 +22,6 @@ import {
 const initialState = ImmutableMap({
   listId: null,
   isSubmitting: false,
-  isChanged: false,
   title: '',
 
   accounts: ImmutableMap({
@@ -48,16 +47,10 @@ export default function listEditorReducer(state = initialState, action) {
       map.set('isSubmitting', false);
     });
   case LIST_EDITOR_TITLE_CHANGE:
-    return state.withMutations(map => {
-      map.set('title', action.value);
-      map.set('isChanged', true);
-    });
+    return state.set('title', action.value);
   case LIST_CREATE_REQUEST:
   case LIST_UPDATE_REQUEST:
-    return state.withMutations(map => {
-      map.set('isSubmitting', true);
-      map.set('isChanged', false);
-    });
+    return state.set('isSubmitting', true);
   case LIST_CREATE_FAIL:
   case LIST_UPDATE_FAIL:
     return state.set('isSubmitting', false);

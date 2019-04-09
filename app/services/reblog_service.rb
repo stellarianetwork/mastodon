@@ -7,9 +7,8 @@ class ReblogService < BaseService
   # Reblog a status and notify its remote author
   # @param [Account] account Account to reblog from
   # @param [Status] reblogged_status Status to be reblogged
-  # @param [Hash] options
   # @return [Status]
-  def call(account, reblogged_status, options = {})
+  def call(account, reblogged_status)
     reblogged_status = reblogged_status.reblog if reblogged_status.reblog?
 
     authorize_with account, reblogged_status, :reblog?
@@ -18,7 +17,7 @@ class ReblogService < BaseService
 
     return reblog unless reblog.nil?
 
-    reblog = account.statuses.create!(reblog: reblogged_status, text: '', visibility: options[:visibility] || account.user&.setting_default_privacy)
+    reblog = account.statuses.create!(reblog: reblogged_status, text: '')
 
     DistributionWorker.perform_async(reblog.id)
     Pubsubhubbub::DistributionWorker.perform_async(reblog.stream_entry.id)
@@ -36,7 +35,7 @@ class ReblogService < BaseService
     reblogged_status = reblog.reblog
 
     if reblogged_status.account.local?
-      LocalNotificationWorker.perform_async(reblogged_status.account_id, reblog.id, reblog.class.name)
+      NotifyService.new.call(reblogged_status.account, reblog)
     elsif reblogged_status.account.ostatus?
       NotificationWorker.perform_async(stream_entry_to_xml(reblog.stream_entry), reblog.account_id, reblogged_status.account_id)
     elsif reblogged_status.account.activitypub? && !reblogged_status.account.following?(reblog.account)

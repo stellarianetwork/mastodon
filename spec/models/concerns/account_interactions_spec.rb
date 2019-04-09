@@ -237,9 +237,9 @@ describe AccountInteractions do
   end
 
   describe '#block_domain!' do
-    let(:domain) { 'example.com' }
+    let(:domain_block) { Fabricate(:domain_block) }
 
-    subject { account.block_domain!(domain) }
+    subject { account.block_domain!(domain_block) }
 
     it 'creates and returns AccountDomainBlock' do
       expect do

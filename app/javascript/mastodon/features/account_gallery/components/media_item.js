@@ -3,7 +3,6 @@ import ImmutablePropTypes from 'react-immutable-proptypes';
 import ImmutablePureComponent from 'react-immutable-pure-component';
 import Permalink from '../../../components/permalink';
 import { displayMedia } from '../../../initial_state';
-import Icon from 'mastodon/components/icon';
 
 export default class MediaItem extends ImmutablePureComponent {
 
@@ -46,7 +45,7 @@ export default class MediaItem extends ImmutablePureComponent {
     } else {
       icon = (
         <span className='account-gallery__item__icons'>
-          <Icon id='eye-slash' />
+          <i className='fa fa-eye-slash' />
         </span>
       );
     }

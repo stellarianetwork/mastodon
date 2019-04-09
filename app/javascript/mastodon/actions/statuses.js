@@ -140,11 +140,7 @@ export function redraft(status) {
 
 export function deleteStatus(id, router, withRedraft = false) {
   return (dispatch, getState) => {
-    let status = getState().getIn(['statuses', id]);
-
-    if (status.get('poll')) {
-      status = status.set('poll', getState().getIn(['polls', status.get('poll')]));
-    }
+    const status = getState().getIn(['statuses', id]);
 
     dispatch(deleteStatusRequest(id));
 

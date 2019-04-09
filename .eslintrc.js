@@ -41,11 +41,6 @@ module.exports = {
       'node_modules',
       '\\.(css|scss|json)$',
     ],
-    'import/resolver': {
-      node: {
-        paths: ['app/javascript'],
-      },
-    },
   },
 
   rules: {

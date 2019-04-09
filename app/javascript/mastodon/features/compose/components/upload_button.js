@@ -29,7 +29,6 @@ class UploadButton extends ImmutablePureComponent {
 
   static propTypes = {
     disabled: PropTypes.bool,
-    unavailable: PropTypes.bool,
     onSelectFile: PropTypes.func.isRequired,
     style: PropTypes.object,
     resetFileKey: PropTypes.number,
@@ -52,11 +51,8 @@ class UploadButton extends ImmutablePureComponent {
   }
 
   render () {
-    const { intl, resetFileKey, unavailable, disabled, acceptContentTypes } = this.props;
 
-    if (unavailable) {
-      return null;
-    }
+    const { intl, resetFileKey, disabled, acceptContentTypes } = this.props;
 
     return (
       <div className='compose-form__upload-button'>
@@ -67,7 +63,7 @@ class UploadButton extends ImmutablePureComponent {
             key={resetFileKey}
             ref={this.setRef}
             type='file'
-            multiple
+            multiple={false}
             accept={acceptContentTypes.toArray().join(',')}
             onChange={this.handleChange}
             disabled={disabled}

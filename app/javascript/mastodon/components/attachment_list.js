@@ -2,7 +2,6 @@ import React from 'react';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import PropTypes from 'prop-types';
 import ImmutablePureComponent from 'react-immutable-pure-component';
-import Icon from 'mastodon/components/icon';
 
 const filename = url => url.split('/').pop().split('#')[0].split('?')[0];
 
@@ -25,7 +24,7 @@ export default class AttachmentList extends ImmutablePureComponent {
 
               return (
                 <li key={attachment.get('id')}>
-                  <a href={displayUrl} target='_blank' rel='noopener'><Icon id='link' /> {filename(displayUrl)}</a>
+                  <a href={displayUrl} target='_blank' rel='noopener'><i className='fa fa-link' /> {filename(displayUrl)}</a>
                 </li>
               );
             })}
@@ -37,7 +36,7 @@ export default class AttachmentList extends ImmutablePureComponent {
     return (
       <div className='attachment-list'>
         <div className='attachment-list__icon'>
-          <Icon id='link' />
+          <i className='fa fa-link' />
         </div>
 
         <ul className='attachment-list__list'>

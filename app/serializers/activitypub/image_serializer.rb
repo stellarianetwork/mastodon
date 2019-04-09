@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-class ActivityPub::ImageSerializer < ActivityPub::Serializer
+class ActivityPub::ImageSerializer < ActiveModel::Serializer
   include RoutingHelper
-
-  context_extensions :focal_point
 
   attributes :type, :media_type, :url
   attribute :focal_point, if: :focal_point?

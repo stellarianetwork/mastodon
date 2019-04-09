@@ -38,18 +38,6 @@ cy:
         fields:
           name: Label
           value: Cynnwys
-      account_warning_preset:
-        text: Testun rhagosodedig
-      admin_account_action:
-        send_email_notification: Hysbysu'r defnyddiwr trwy e-bost
-        text: Rhybudd wedi'i addasu
-        type: Gweithredu
-        types:
-          disable: Analluogi
-          none: Gwneud dim
-          silence: Tawelwch
-          suspend: Dileu data cyfrif
-        warning_preset_id: Defnyddiwch ragnod rhag rhybudd
       defaults:
         autofollow: Gwahodd i ddilyn eich cyfrif
         avatar: Afatar
@@ -60,7 +48,6 @@ cy:
         context: Hidlo cyd-destunau
         current_password: Cyfrinair presennol
         data: Data
-        discoverable: Rhestrwch y cyfrif hwn ar y cyfeiriadur
         display_name: Enw arddangos
         email: Cyfeiriad e-bost
         expires_in: Yn dod i ben ar ôl
@@ -76,7 +63,6 @@ cy:
         otp_attempt: Côd dau gam
         password: Cyfrinair
         phrase: Allweddair neu ymadrodd
-        setting_aggregate_reblogs: Grŵp hybiau mewn llinellau amser
         setting_auto_play_gif: Chwarae GIFs wedi'u hanimeiddio yn awtomatig
         setting_boost_modal: Dangos deialog cadarnhad cyn bŵstio
         setting_default_language: Cyhoeddi iaith

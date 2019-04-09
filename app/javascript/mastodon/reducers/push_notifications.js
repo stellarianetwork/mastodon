@@ -9,7 +9,6 @@ const initialState = Immutable.Map({
     favourite: false,
     reblog: false,
     mention: false,
-    poll: false,
   }),
   isSubscribed: false,
   browserSupport: false,

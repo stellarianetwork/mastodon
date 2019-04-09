@@ -22,7 +22,7 @@ class AccountFilter
 
   def set_defaults!
     params['local']  = '1' if params['remote'].blank?
-    params['active'] = '1' if params['suspended'].blank? && params['silenced'].blank? && params['pending'].blank?
+    params['active'] = '1' if params['suspended'].blank? && params['silenced'].blank?
   end
 
   def scope_for(key, value)
@@ -35,8 +35,6 @@ class AccountFilter
       Account.where(domain: value)
     when 'active'
       Account.without_suspended
-    when 'pending'
-      accounts_with_users.merge User.pending
     when 'silenced'
       Account.silenced
     when 'suspended'

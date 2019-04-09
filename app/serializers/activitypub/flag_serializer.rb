@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-class ActivityPub::FlagSerializer < ActivityPub::Serializer
+class ActivityPub::FlagSerializer < ActiveModel::Serializer
   attributes :id, :type, :actor, :content
   attribute :virtual_object, key: :object
 
   def id
+    # This is nil for now
     ActivityPub::TagManager.instance.uri_for(object)
   end
 

@@ -1,9 +1,6 @@
 ---
 de:
   activerecord:
-    attributes:
-      status:
-        owned_poll: Umfrage
     errors:
       models:
         account:

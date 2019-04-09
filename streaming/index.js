@@ -24,7 +24,7 @@ const dbUrlToConfig = (dbUrl) => {
     return {};
   }
 
-  const params = url.parse(dbUrl, true);
+  const params = url.parse(dbUrl);
   const config = {};
 
   if (params.auth) {
@@ -45,8 +45,8 @@ const dbUrlToConfig = (dbUrl) => {
 
   const ssl = params.query && params.query.ssl;
 
-  if (ssl && ssl === 'true' || ssl === '1') {
-    config.ssl = true;
+  if (ssl) {
+    config.ssl = ssl === 'true' || ssl === '1';
   }
 
   return config;
@@ -101,12 +101,7 @@ const startWorker = (workerId) => {
     },
   };
 
-  if (!!process.env.DB_SSLMODE && process.env.DB_SSLMODE !== 'disable') {
-    pgConfigs.development.ssl = true;
-    pgConfigs.production.ssl  = true;
-  }
-
-  const app = express();
+  const app    = express();
   app.set('trusted proxy', process.env.TRUSTED_PROXY_IP || 'loopback,uniquelocal');
 
   const pgPool = new pg.Pool(Object.assign(pgConfigs[env], dbUrlToConfig(process.env.DATABASE_URL)));

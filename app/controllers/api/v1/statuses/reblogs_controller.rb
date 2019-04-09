@@ -9,7 +9,7 @@ class Api::V1::Statuses::ReblogsController < Api::BaseController
   respond_to :json
 
   def create
-    @status = ReblogService.new.call(current_user.account, status_for_reblog, reblog_params)
+    @status = ReblogService.new.call(current_user.account, status_for_reblog)
     render json: @status, serializer: REST::StatusSerializer
   end
 
@@ -31,9 +31,5 @@ class Api::V1::Statuses::ReblogsController < Api::BaseController
 
   def status_for_destroy
     current_user.account.statuses.where(reblog_of_id: params[:status_id]).first!
-  end
-
-  def reblog_params
-    params.permit(:visibility)
   end
 end

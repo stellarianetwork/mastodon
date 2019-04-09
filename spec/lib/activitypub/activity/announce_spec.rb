@@ -12,7 +12,6 @@ RSpec.describe ActivityPub::Activity::Announce do
       type: 'Announce',
       actor: 'https://example.com/actor',
       object: object_json,
-      to: 'http://example.com/followers',
     }.with_indifferent_access
   end
 

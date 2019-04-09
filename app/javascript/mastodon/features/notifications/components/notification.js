@@ -7,7 +7,6 @@ import { injectIntl, FormattedMessage } from 'react-intl';
 import Permalink from '../../../components/permalink';
 import ImmutablePureComponent from 'react-immutable-pure-component';
 import { HotKeys } from 'react-hotkeys';
-import Icon from 'mastodon/components/icon';
 
 const notificationForScreenReader = (intl, message, timestamp) => {
   const output = [message];
@@ -33,7 +32,7 @@ class Notification extends ImmutablePureComponent {
     onFavourite: PropTypes.func.isRequired,
     onReblog: PropTypes.func.isRequired,
     onToggleHidden: PropTypes.func.isRequired,
-    status: ImmutablePropTypes.map,
+    status: PropTypes.option,
     intl: PropTypes.object.isRequired,
     getScrollPosition: PropTypes.func,
     updateScrollBottom: PropTypes.func,
@@ -110,7 +109,7 @@ class Notification extends ImmutablePureComponent {
         <div className='notification notification-follow focusable' tabIndex='0' aria-label={notificationForScreenReader(intl, intl.formatMessage({ id: 'notification.follow', defaultMessage: '{name} followed you' }, { name: account.get('acct') }), notification.get('created_at'))}>
           <div className='notification__message'>
             <div className='notification__favourite-icon-wrapper'>
-              <Icon id='user-plus' fixedWidth />
+              <i className='fa fa-fw fa-user-plus' />
             </div>
 
             <span title={notification.get('created_at')}>
@@ -149,7 +148,7 @@ class Notification extends ImmutablePureComponent {
         <div className='notification notification-favourite focusable' tabIndex='0' aria-label={notificationForScreenReader(intl, intl.formatMessage({ id: 'notification.favourite', defaultMessage: '{name} favourited your status' }, { name: notification.getIn(['account', 'acct']) }), notification.get('created_at'))}>
           <div className='notification__message'>
             <div className='notification__favourite-icon-wrapper'>
-              <Icon id='star' className='star-icon' fixedWidth />
+              <i className='fa fa-fw fa-star star-icon' />
             </div>
 
             <span title={notification.get('created_at')}>
@@ -181,43 +180,11 @@ class Notification extends ImmutablePureComponent {
         <div className='notification notification-reblog focusable' tabIndex='0' aria-label={notificationForScreenReader(intl, intl.formatMessage({ id: 'notification.reblog', defaultMessage: '{name} boosted your status' }, { name: notification.getIn(['account', 'acct']) }), notification.get('created_at'))}>
           <div className='notification__message'>
             <div className='notification__favourite-icon-wrapper'>
-              <Icon id='retweet' fixedWidth />
+              <i className='fa fa-fw fa-retweet' />
             </div>
 
             <span title={notification.get('created_at')}>
               <FormattedMessage id='notification.reblog' defaultMessage='{name} boosted your status' values={{ name: link }} />
-            </span>
-          </div>
-
-          <StatusContainer
-            id={notification.get('status')}
-            account={notification.get('account')}
-            muted
-            withDismiss
-            hidden={this.props.hidden}
-            getScrollPosition={this.props.getScrollPosition}
-            updateScrollBottom={this.props.updateScrollBottom}
-            cachedMediaWidth={this.props.cachedMediaWidth}
-            cacheMediaWidth={this.props.cacheMediaWidth}
-          />
-        </div>
-      </HotKeys>
-    );
-  }
-
-  renderPoll (notification) {
-    const { intl } = this.props;
-
-    return (
-      <HotKeys handlers={this.getHandlers()}>
-        <div className='notification notification-poll focusable' tabIndex='0' aria-label={notificationForScreenReader(intl, intl.formatMessage({ id: 'notification.poll', defaultMessage: 'A poll you have voted in has ended' }), notification.get('created_at'))}>
-          <div className='notification__message'>
-            <div className='notification__favourite-icon-wrapper'>
-              <Icon id='tasks' fixedWidth />
-            </div>
-
-            <span title={notification.get('created_at')}>
-              <FormattedMessage id='notification.poll' defaultMessage='A poll you have voted in has ended' />
             </span>
           </div>
 
@@ -252,8 +219,6 @@ class Notification extends ImmutablePureComponent {
       return this.renderFavourite(notification, link);
     case 'reblog':
       return this.renderReblog(notification, link);
-    case 'poll':
-      return this.renderPoll(notification);
     }
 
     return null;

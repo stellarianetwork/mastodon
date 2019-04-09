@@ -5,7 +5,6 @@ import { FormattedMessage } from 'react-intl';
 import ImmutablePureComponent from 'react-immutable-pure-component';
 import AvatarOverlay from '../../../components/avatar_overlay';
 import DisplayName from '../../../components/display_name';
-import Icon from 'mastodon/components/icon';
 
 export default class MovedNote extends ImmutablePureComponent {
 
@@ -34,7 +33,7 @@ export default class MovedNote extends ImmutablePureComponent {
     return (
       <div className='account__moved-note'>
         <div className='account__moved-note__message'>
-          <div className='account__moved-note__icon-wrapper'><Icon id='suitcase' className='account__moved-note__icon' fixedWidth /></div>
+          <div className='account__moved-note__icon-wrapper'><i className='fa fa-fw fa-suitcase account__moved-note__icon' /></div>
           <FormattedMessage id='account.moved_to' defaultMessage='{name} has moved to:' values={{ name: <bdi><strong dangerouslySetInnerHTML={displayNameHtml} /></bdi> }} />
         </div>
 

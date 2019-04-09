@@ -6,7 +6,6 @@ import ImmutablePropTypes from 'react-immutable-proptypes';
 import IconButton from '../../../components/icon_button';
 import { defineMessages, injectIntl } from 'react-intl';
 import { removeFromListAdder, addToListAdder } from '../../../actions/lists';
-import Icon from 'mastodon/components/icon';
 
 const messages = defineMessages({
   remove: { id: 'lists.account.remove', defaultMessage: 'Remove from list' },
@@ -54,7 +53,7 @@ class List extends ImmutablePureComponent {
       <div className='list'>
         <div className='list__wrapper'>
           <div className='list__display-name'>
-            <Icon id='list-ul' className='column-link__icon' fixedWidth />
+            <i className='fa fa-fw fa-list-ul column-link__icon' />
             {list.get('title')}
           </div>
 

@@ -20,23 +20,7 @@ module ApplicationHelper
   end
 
   def open_registrations?
-    Setting.registrations_mode == 'open'
-  end
-
-  def approved_registrations?
-    Setting.registrations_mode == 'approved'
-  end
-
-  def closed_registrations?
-    Setting.registrations_mode == 'none'
-  end
-
-  def available_sign_up_path
-    if closed_registrations?
-      'https://joinmastodon.org/#getting-started'
-    else
-      new_user_registration_path
-    end
+    Setting.open_registrations
   end
 
   def open_deletion?

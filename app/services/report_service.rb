@@ -21,8 +21,7 @@ class ReportService < BaseService
     @report = @source_account.reports.create!(
       target_account: @target_account,
       status_ids: @status_ids,
-      comment: @comment,
-      uri: @options[:uri]
+      comment: @comment
     )
   end
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class ActivityPub::UndoLikeSerializer < ActivityPub::Serializer
+class ActivityPub::UndoLikeSerializer < ActiveModel::Serializer
   attributes :id, :type, :actor
 
   has_one :object, serializer: ActivityPub::LikeSerializer

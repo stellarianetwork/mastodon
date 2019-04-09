@@ -1,9 +1,6 @@
 ---
 el:
   activerecord:
-    attributes:
-      status:
-        owned_poll: Ψηφοφορία
     errors:
       models:
         account:

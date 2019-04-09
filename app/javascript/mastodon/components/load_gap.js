@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { injectIntl, defineMessages } from 'react-intl';
-import Icon from 'mastodon/components/icon';
 
 const messages = defineMessages({
   load_more: { id: 'status.load_more', defaultMessage: 'Load more' },
@@ -26,7 +25,7 @@ class LoadGap extends React.PureComponent {
 
     return (
       <button className='load-more load-gap' disabled={disabled} onClick={this.handleClick} aria-label={intl.formatMessage(messages.load_more)}>
-        <Icon id='ellipsis-h' />
+        <i className='fa fa-ellipsis-h' />
       </button>
     );
   }

@@ -1,98 +1,70 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import ImmutablePropTypes from 'react-immutable-proptypes';
-import { expandPublicTimeline, expandCommunityTimeline } from 'mastodon/actions/timelines';
-import Masonry from 'react-masonry-infinite';
-import { List as ImmutableList, Map as ImmutableMap } from 'immutable';
-import DetailedStatusContainer from 'mastodon/features/status/containers/detailed_status_container';
-import { debounce } from 'lodash';
-import LoadingIndicator from 'mastodon/components/loading_indicator';
+import StatusListContainer from '../../ui/containers/status_list_container';
+import { expandPublicTimeline } from '../../../actions/timelines';
+import Column from '../../../components/column';
+import ColumnHeader from '../../../components/column_header';
+import { defineMessages, injectIntl } from 'react-intl';
+import { connectPublicStream } from '../../../actions/streaming';
 
-const mapStateToProps = (state, { local }) => {
-  const timeline = state.getIn(['timelines', local ? 'community' : 'public'], ImmutableMap());
+const messages = defineMessages({
+  title: { id: 'standalone.public_title', defaultMessage: 'A look inside...' },
+});
 
-  return {
-    statusIds: timeline.get('items', ImmutableList()),
-    isLoading: timeline.get('isLoading', false),
-    hasMore: timeline.get('hasMore', false),
-  };
-};
-
-export default @connect(mapStateToProps)
+export default @connect()
+@injectIntl
 class PublicTimeline extends React.PureComponent {
 
   static propTypes = {
     dispatch: PropTypes.func.isRequired,
-    statusIds: ImmutablePropTypes.list.isRequired,
-    isLoading: PropTypes.bool.isRequired,
-    hasMore: PropTypes.bool.isRequired,
-    local: PropTypes.bool,
+    intl: PropTypes.object.isRequired,
   };
 
-  componentDidMount () {
-    this._connect();
-  }
-
-  componentDidUpdate (prevProps) {
-    if (prevProps.local !== this.props.local) {
-      this._connect();
-    }
-  }
-
-  _connect () {
-    const { dispatch, local } = this.props;
-
-    dispatch(local ? expandCommunityTimeline() : expandPublicTimeline());
-  }
-
-  handleLoadMore = () => {
-    const { dispatch, statusIds, local } = this.props;
-    const maxId = statusIds.last();
-
-    if (maxId) {
-      dispatch(local ? expandCommunityTimeline({ maxId }) : expandPublicTimeline({ maxId }));
-    }
+  handleHeaderClick = () => {
+    this.column.scrollTop();
   }
 
   setRef = c => {
-    this.masonry = c;
+    this.column = c;
   }
 
-  handleHeightChange = debounce(() => {
-    if (!this.masonry) {
-      return;
-    }
+  componentDidMount () {
+    const { dispatch } = this.props;
 
-    this.masonry.forcePack();
-  }, 50)
+    dispatch(expandPublicTimeline());
+    this.disconnect = dispatch(connectPublicStream());
+  }
+
+  componentWillUnmount () {
+    if (this.disconnect) {
+      this.disconnect();
+      this.disconnect = null;
+    }
+  }
+
+  handleLoadMore = maxId => {
+    this.props.dispatch(expandPublicTimeline({ maxId }));
+  }
 
   render () {
-    const { statusIds, hasMore, isLoading } = this.props;
-
-    const sizes = [
-      { columns: 1, gutter: 0 },
-      { mq: '415px', columns: 1, gutter: 10 },
-      { mq: '640px', columns: 2, gutter: 10 },
-      { mq: '960px', columns: 3, gutter: 10 },
-      { mq: '1255px', columns: 3, gutter: 10 },
-    ];
-
-    const loader = (isLoading && statusIds.isEmpty()) ? <LoadingIndicator key={0} /> : undefined;
+    const { intl } = this.props;
 
     return (
-      <Masonry ref={this.setRef} className='statuses-grid' hasMore={hasMore} loadMore={this.handleLoadMore} sizes={sizes} loader={loader}>
-        {statusIds.map(statusId => (
-          <div className='statuses-grid__item' key={statusId}>
-            <DetailedStatusContainer
-              id={statusId}
-              compact
-              measureHeight
-              onHeightChange={this.handleHeightChange}
-            />
-          </div>
-        )).toArray()}
-      </Masonry>
+      <Column ref={this.setRef} label={intl.formatMessage(messages.title)}>
+        <ColumnHeader
+          icon='globe'
+          title={intl.formatMessage(messages.title)}
+          onClick={this.handleHeaderClick}
+        />
+
+        <StatusListContainer
+          timelineId='public'
+          onLoadMore={this.handleLoadMore}
+          scrollKey='standalone_public_timeline'
+          trackScroll={false}
+        />
+      </Column>
     );
   }
 

@@ -13,7 +13,6 @@ import { connectUserStream } from '../actions/streaming';
 import { IntlProvider, addLocaleData } from 'react-intl';
 import { getLocale } from '../locales';
 import initialState from '../initial_state';
-import ErrorBoundary from '../components/error_boundary';
 
 const { localeData, messages } = getLocale();
 addLocaleData(localeData);
@@ -76,9 +75,7 @@ export default class Mastodon extends React.PureComponent {
     return (
       <IntlProvider locale={locale} messages={messages}>
         <Provider store={store}>
-          <ErrorBoundary>
-            <MastodonMount />
-          </ErrorBoundary>
+          <MastodonMount />
         </Provider>
       </IntlProvider>
     );

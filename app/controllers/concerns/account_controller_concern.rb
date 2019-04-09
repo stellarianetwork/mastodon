@@ -7,18 +7,16 @@ module AccountControllerConcern
 
   included do
     layout 'public'
-
     before_action :set_account
-    before_action :check_account_approval
-    before_action :check_account_suspension
     before_action :set_instance_presenter
     before_action :set_link_headers
+    before_action :check_account_suspension
   end
 
   private
 
   def set_account
-    @account = Account.find_local!(username_param)
+    @account = Account.find_local!(params[:account_username])
   end
 
   def set_instance_presenter
@@ -33,10 +31,6 @@ module AccountControllerConcern
         actor_url_link,
       ]
     )
-  end
-
-  def username_param
-    params[:account_username]
   end
 
   def webfinger_account_link
@@ -64,15 +58,7 @@ module AccountControllerConcern
     webfinger_url(resource: @account.to_webfinger_s)
   end
 
-  def check_account_approval
-    not_found if @account.user_pending?
-  end
-
   def check_account_suspension
-    if @account.suspended?
-      skip_session!
-      expires_in(3.minutes, public: true)
-      gone
-    end
+    gone if @account.suspended?
   end
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class ActivityPub::UndoBlockSerializer < ActivityPub::Serializer
+class ActivityPub::UndoBlockSerializer < ActiveModel::Serializer
   attributes :id, :type, :actor
 
   has_one :object, serializer: ActivityPub::BlockSerializer

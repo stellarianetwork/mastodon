@@ -80,7 +80,7 @@ Rails/HttpStatus:
 Rails/Exit:
   Exclude:
     - 'lib/mastodon/*'
-    - 'lib/cli.rb'
+    - 'lib/cli'
 
 Style/ClassAndModuleChildren:
   Enabled: false

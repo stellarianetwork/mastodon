@@ -2,11 +2,11 @@ import WebSocketClient from 'websocket.js';
 
 const randomIntUpTo = max => Math.floor(Math.random() * Math.floor(max));
 
-export function connectStream(path, pollingRefresh = null, callbacks = () => ({ onConnect() {}, onDisconnect() {}, onReceive() {} })) {
+export function connectStream(path, pollingRefresh = null, callbacks = () => ({ onDisconnect() {}, onReceive() {} })) {
   return (dispatch, getState) => {
     const streamingAPIBaseURL = getState().getIn(['meta', 'streaming_api_base_url']);
     const accessToken = getState().getIn(['meta', 'access_token']);
-    const { onConnect, onDisconnect, onReceive } = callbacks(dispatch, getState);
+    const { onDisconnect, onReceive } = callbacks(dispatch, getState);
 
     let polling = null;
 
@@ -28,8 +28,6 @@ export function connectStream(path, pollingRefresh = null, callbacks = () => ({ 
         if (pollingRefresh) {
           clearPolling();
         }
-
-        onConnect();
       },
 
       disconnected () {
@@ -49,8 +47,6 @@ export function connectStream(path, pollingRefresh = null, callbacks = () => ({ 
           clearPolling();
           pollingRefresh(dispatch);
         }
-
-        onConnect();
       },
 
     });

@@ -11,9 +11,8 @@ describe 'Localization' do
     headers = { 'Accept-Language' => 'zh-HK' }
 
     get "/about", headers: headers
-
     expect(response.body).to include(
-      I18n.t('about.tagline', locale: 'zh-HK')
+      I18n.t('about.about_mastodon_html', locale: 'zh-HK')
     )
   end
 
@@ -21,18 +20,16 @@ describe 'Localization' do
     headers = { 'Accept-Language' => 'es-FAKE' }
 
     get "/about", headers: headers
-
     expect(response.body).to include(
-      I18n.t('about.tagline', locale: 'es')
+      I18n.t('about.about_mastodon_html', locale: 'es')
     )
   end
   it 'falls back to english when locale is missing' do
     headers = { 'Accept-Language' => '12-FAKE' }
 
     get "/about", headers: headers
-
     expect(response.body).to include(
-      I18n.t('about.tagline', locale: 'en')
+      I18n.t('about.about_mastodon_html', locale: 'en')
     )
   end
 end

@@ -21,14 +21,6 @@ class UserPolicy < ApplicationPolicy
     staff?
   end
 
-  def approve?
-    staff? && !record.approved?
-  end
-
-  def reject?
-    staff? && !record.approved?
-  end
-
   def disable?
     staff? && !record.admin?
   end
@@ -44,7 +36,7 @@ class UserPolicy < ApplicationPolicy
   private
 
   def promoteable?
-    record.approved? && (!record.staff? || !record.admin?)
+    !record.staff? || !record.admin?
   end
 
   def demoteable?

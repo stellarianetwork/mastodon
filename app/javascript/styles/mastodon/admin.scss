@@ -153,13 +153,8 @@ $content-width: 840px;
       font-weight: 500;
     }
 
-    .directory__tag > a,
-    .directory__tag > div {
+    .directory__tag a {
       box-shadow: none;
-    }
-
-    .directory__tag .table-action-link .fa {
-      color: inherit;
     }
 
     .directory__tag h4 {
@@ -218,11 +213,6 @@ $content-width: 840px;
 
     .negative-hint {
       color: $error-value-color;
-      font-weight: 500;
-    }
-
-    .neutral-hint {
-      color: $dark-text-color;
       font-weight: 500;
     }
   }
@@ -693,12 +683,4 @@ a.name-tag,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.ellipsized-ip {
-  display: inline-block;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
 }

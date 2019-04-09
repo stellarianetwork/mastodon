@@ -269,8 +269,7 @@
     box-sizing: border-box;
     margin-bottom: 10px;
 
-    & > a,
-    & > div {
+    a {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -280,9 +279,7 @@
       text-decoration: none;
       color: inherit;
       box-shadow: 0 0 15px rgba($base-shadow-color, 0.2);
-    }
 
-    & > a {
       &:hover,
       &:active,
       &:focus {
@@ -290,13 +287,8 @@
       }
     }
 
-    &.active > a {
+    &.active a {
       background: $ui-highlight-color;
-      cursor: default;
-    }
-
-    &.disabled > div {
-      opacity: 0.5;
       cursor: default;
     }
 
@@ -352,7 +344,6 @@
     border-radius: 50%;
     position: relative;
     margin-left: -10px;
-    background: darken($ui-base-color, 8%);
     border: 2px solid $ui-base-color;
 
     &:nth-child(1) {

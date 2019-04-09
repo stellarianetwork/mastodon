@@ -1,10 +1,6 @@
 ---
 co:
   activerecord:
-    attributes:
-      poll:
-        expires_at: Fine
-        options: Scelte
     errors:
       models:
         account:
