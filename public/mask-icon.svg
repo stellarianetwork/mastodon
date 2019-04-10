@@ -1,12 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 250 250" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:1.41421;">
-    <g transform="matrix(1,0,0,1,-1200,-1980)">
-        <g id="logo_mask" transform="matrix(1,0,0,1,-2733,1980)">
-            <rect x="3933" y="0" width="250" height="250" style="fill:none;"/>
-            <g transform="matrix(14.3932,0,0,14.3932,-52738.2,-509.797)">
-                <path d="M3946.04,46.655L3949.31,52.02L3952.38,49.882L3948.48,44.854L3954.41,43.616L3953.43,40.202L3947.66,42.078L3947.92,36.188L3944.13,36.188L3944.43,42.078L3938.62,40.202L3937.68,43.616L3943.57,44.854L3939.7,49.882L3942.78,52.02L3946.04,46.655Z" style="fill-rule:nonzero;"/>
-            </g>
-        </g>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250">
+  <path fill="none" d="M0 0h250v250H0z"/>
+  <path fill="#000" d="M124.942928 161.717746l47.065764 77.219518 44.187124-30.7726616-56.13348-72.3690096 85.351676-17.8187816-14.105336-49.1383848-83.048764 27.0016432 3.742232-84.775948H97.451916l4.31796 84.775948-83.624492-27.0016432-13.529608 49.1383848 84.775948 17.8187816-55.701684 72.3690096 44.331056 30.7726616 46.921832-77.219518z"/>
 </svg>
