@@ -77,7 +77,7 @@ class Option extends React.PureComponent {
 
           <AutosuggestInput
             placeholder={intl.formatMessage(messages.option_placeholder, { number: index + 1 })}
-            maxLength={25}
+            maxLength={50}
             value={title}
             onChange={this.handleOptionTitleChange}
             suggestions={this.props.suggestions}
