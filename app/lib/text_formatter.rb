@@ -19,6 +19,7 @@ class TextFormatter
   # @param [Hash] options
   # @option options [Boolean] :multiline
   # @option options [Boolean] :with_domains
+  # @option options [Boolean] :with_labeled_links
   # @option options [Boolean] :with_rel_me
   # @option options [Array<Account>] :preloaded_accounts
   def initialize(text, options = {})
@@ -27,14 +28,23 @@ class TextFormatter
   end
 
   def entities
-    @entities ||= Extractor.extract_entities_with_indices(text, extract_url_without_protocol: false)
+    @entities ||= begin
+      extracted_entities = Extractor.extract_entities_with_indices(text, extract_url_without_protocol: false)
+      if with_labeled_links?
+        Extractor.remove_overlapping_entities(LabeledLinkParser.extract_entities_with_indices(text) + extracted_entities)
+      else
+        extracted_entities
+      end
+    end
   end
 
   def to_s
     return add_quote_fallback('').html_safe if text.blank? # rubocop:disable Rails/OutputSafety
 
     html = rewrite do |entity|
-      if entity[:url]
+      if entity[:label]
+        link_to_labeled_link(entity)
+      elsif entity[:url]
         link_to_url(entity)
       elsif entity[:hashtag]
         link_to_hashtag(entity)
@@ -112,6 +122,14 @@ class TextFormatter
     TextFormatter.shortened_link(entity[:url], rel_me: with_rel_me?)
   end
 
+  def link_to_labeled_link(entity)
+    rel = with_rel_me? ? (DEFAULT_REL + %w(me)) : DEFAULT_REL
+
+    <<~HTML.squish
+      <a href="#{h(entity[:url])}" target="_blank" rel="#{rel.join(' ')}">#{h(entity[:label])}</a>
+    HTML
+  end
+
   def link_to_hashtag(entity)
     hashtag = entity[:hashtag]
     url     = tag_url(hashtag)
@@ -164,6 +182,10 @@ class TextFormatter
 
   def with_domains?
     options[:with_domains]
+  end
+
+  def with_labeled_links?
+    options[:with_labeled_links]
   end
 
   def with_rel_me?

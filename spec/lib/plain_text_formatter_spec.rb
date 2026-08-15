@@ -4,13 +4,24 @@ require 'rails_helper'
 
 RSpec.describe PlainTextFormatter do
   describe '#to_s' do
-    subject { described_class.new(status.text, status.local?).to_s }
+    subject { described_class.new(status.text, status.local?, with_labeled_links: with_labeled_links).to_s }
+
+    let(:with_labeled_links) { false }
 
     context 'when status is local' do
       let(:status) { Fabricate.build(:status, text: '<p>a text by a nerd who uses an HTML tag in text</p>', uri: nil) }
 
       it 'returns the raw text' do
         expect(subject).to eq '<p>a text by a nerd who uses an HTML tag in text</p>'
+      end
+    end
+
+    context 'when status is local and labeled links are enabled' do
+      let(:status) { Fabricate.build(:status, text: 'Read [the article](https://example.com).', uri: nil) }
+      let(:with_labeled_links) { true }
+
+      it 'returns the visible label' do
+        expect(subject).to eq 'Read the article.'
       end
     end
 

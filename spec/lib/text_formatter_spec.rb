@@ -61,6 +61,37 @@ RSpec.describe TextFormatter do
       end
     end
 
+    context 'when given a labeled link' do
+      subject { described_class.new(text, with_labeled_links: true).to_s }
+
+      let(:text) { '[label](http://example.com)' }
+
+      it 'uses the label as the link text' do
+        expect(subject).to eq '<p><a href="http://example.com" target="_blank" rel="nofollow noopener">label</a></p>'
+      end
+    end
+
+    context 'when given a labeled link with HTML in its label' do
+      subject { described_class.new(text, with_labeled_links: true).to_s }
+
+      let(:text) { '[<script>alert("Hello")</script>](https://example.com)' }
+
+      it 'escapes the label' do
+        expect(subject).to include '&lt;script&gt;alert(&quot;Hello&quot;)&lt;/script&gt;'
+        expect(subject).to_not include '<script>'
+      end
+    end
+
+    context 'when given a labeled link with an unsupported scheme' do
+      subject { described_class.new(text, with_labeled_links: true).to_s }
+
+      let(:text) { '[label](javascript:alert(1))' }
+
+      it 'keeps the syntax as text' do
+        expect(subject).to eq '<p>[label](javascript:alert(1))</p>'
+      end
+    end
+
     context 'when given a stand-alone URL with a newer TLD' do
       let(:text) { 'http://example.gay' }
 
