@@ -43,6 +43,36 @@ RSpec.describe StatusLengthValidator do
     it { is_expected.to allow_value(text).for(:text) }
   end
 
+  context 'when text has a labeled link with a short label' do
+    let(:text) { "#{'a' * 77}[label](https://example.com/a-long-path)" }
+
+    it { is_expected.to allow_value(text).for(:text) }
+  end
+
+  context 'when a labeled link with a short label causes limit excess' do
+    let(:text) { "#{'a' * 78}[label](https://example.com/a-long-path)" }
+
+    it { is_expected.to_not allow_value(text).for(:text).with_message(too_long_message) }
+  end
+
+  context 'when text has a labeled link with a long label' do
+    let(:text) { "#{'a' * 70}[#{'b' * 30}](https://example.com)" }
+
+    it { is_expected.to allow_value(text).for(:text) }
+  end
+
+  context 'when a labeled link with a long label causes limit excess' do
+    let(:text) { "#{'a' * 71}[#{'b' * 30}](https://example.com)" }
+
+    it { is_expected.to_not allow_value(text).for(:text).with_message(too_long_message) }
+  end
+
+  context 'with an excessively long labeled-link URL' do
+    let(:text) { "[label](https://example.com/#{'a' * 4096})" }
+
+    it { is_expected.to_not allow_value(text).for(:text).with_message(too_long_message) }
+  end
+
   context 'when text has non-separated URLs' do
     let(:text) { [starting_string, example_link].join }
 
