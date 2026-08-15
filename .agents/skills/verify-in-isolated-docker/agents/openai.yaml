@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Docker隔離動作確認'
+  short_description: 'ホストを汚さずMastodonのテストとブラウザ確認を実行'
+  default_prompt: 'Use $verify-in-isolated-docker to verify the current Mastodon changes without writing dependencies or runtime data to the host.'
