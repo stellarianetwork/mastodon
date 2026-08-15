@@ -50,6 +50,15 @@ RSpec.describe FetchLinkCardService do
       end
     end
 
+    context 'with a labeled URL of a regular HTML page' do
+      let(:status) { Fabricate(:status, text: '[Example](http://example.com/html)') }
+
+      it 'creates preview card for the target URL' do
+        expect(status.preview_card).to_not be_nil
+        expect(status.preview_card.url).to eq 'http://example.com/html'
+      end
+    end
+
     context 'with URL of a page with no title' do
       let(:status) { Fabricate(:status, text: 'http://example.com/html') }
       let(:html) { '<!doctype html><title></title>' }

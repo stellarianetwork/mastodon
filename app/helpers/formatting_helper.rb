@@ -22,14 +22,20 @@ module FormattingHelper
   end
 
   def extract_status_plain_text(status)
-    PlainTextFormatter.new(status.text, status.local?).to_s
+    PlainTextFormatter.new(status.text, status.local?, with_labeled_links: true).to_s
   end
   module_function :extract_status_plain_text
 
   def status_content_format(status)
     quoted_status = status.quote&.quoted_status if status.local?
 
-    html_aware_format(status.text, status.local?, preloaded_accounts: [status.account] + (status.respond_to?(:active_mentions) ? status.active_mentions.map(&:account) : []), quoted_status: quoted_status)
+    html_aware_format(
+      status.text,
+      status.local?,
+      preloaded_accounts: [status.account] + (status.respond_to?(:active_mentions) ? status.active_mentions.map(&:account) : []),
+      quoted_status: quoted_status,
+      with_labeled_links: true
+    )
   end
 
   def rss_status_content_format(status)

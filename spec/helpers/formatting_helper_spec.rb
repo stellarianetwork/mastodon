@@ -5,6 +5,16 @@ require 'rails_helper'
 RSpec.describe FormattingHelper do
   include Devise::Test::ControllerHelpers
 
+  describe '#status_content_format' do
+    subject { helper.status_content_format(status) }
+
+    let(:status) { Fabricate.build(:status, text: 'Read [the article](https://example.com).') }
+
+    it 'renders labeled links for local statuses' do
+      expect(Nokogiri::HTML.fragment(subject).at_css('a[href="https://example.com"]').text).to eq 'the article'
+    end
+  end
+
   describe '#rss_status_content_format' do
     subject { helper.rss_status_content_format(status) }
 

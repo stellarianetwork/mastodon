@@ -63,6 +63,14 @@ RSpec.describe ActivityPub::NoteSerializer do
     end
   end
 
+  context 'with a labeled link' do
+    let(:parent) { Fabricate(:status, text: '[Mastodon](https://joinmastodon.org)', account: account, visibility: :public, language: 'en') }
+
+    it 'serializes the label and target as an HTML link' do
+      expect(subject['content']).to include '<a href="https://joinmastodon.org" target="_blank" rel="nofollow noopener">Mastodon</a>'
+    end
+  end
+
   context 'with a quote' do
     let(:quoted_status) { Fabricate(:status) }
     let!(:quote) { Fabricate(:quote, status: parent, quoted_status: quoted_status, state: :accepted) }
