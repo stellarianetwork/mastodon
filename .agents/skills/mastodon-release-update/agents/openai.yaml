@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mastodon Release Update"
+  short_description: "Stellaria版Mastodonの更新・Docker公開・server手順"
+  default_prompt: "Use $mastodon-release-update to update the Stellaria Mastodon fork, publish its Docker images, and provide the release-note-backed server upgrade steps."
