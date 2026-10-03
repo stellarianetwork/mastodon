@@ -3,11 +3,14 @@
 class ProcessMentionsService < BaseService
   include Payloadable
 
+  attr_reader :unresolved_mentions
+
   # Scan status for mentions and fetch remote mentioned users,
   # and create local mention pointers
   # @param [Status] status
   def call(status)
     @status = status
+    @unresolved_mentions = []
 
     return unless @status.local?
 
@@ -35,7 +38,7 @@ class ProcessMentionsService < BaseService
       mentioned_account = Account.find_remote(username, domain)
 
       # Unapproved and unconfirmed accounts should not be mentionable
-      next match if mentioned_account&.local? && !(mentioned_account.user_confirmed? && mentioned_account.user_approved?)
+      next unresolved_mention(match) if mentioned_account&.local? && !(mentioned_account.user_confirmed? && mentioned_account.user_approved?)
 
       # If the account cannot be found or isn't the right protocol,
       # first try to resolve it
@@ -49,7 +52,7 @@ class ProcessMentionsService < BaseService
 
       # If after resolving it still isn't found or isn't the right
       # protocol, then give up
-      next match if mention_undeliverable?(mentioned_account) || mentioned_account&.unavailable?
+      next unresolved_mention(match) if mention_undeliverable?(mentioned_account) || mentioned_account&.unavailable?
 
       mention   = @previous_mentions.find { |x| x.account_id == mentioned_account.id }
       mention ||= @current_mentions.find  { |x| x.account_id == mentioned_account.id }
@@ -93,5 +96,10 @@ class ProcessMentionsService < BaseService
 
   def mention_undeliverable?(mentioned_account)
     mentioned_account.nil? || (!mentioned_account.local? && !mentioned_account.activitypub?)
+  end
+
+  def unresolved_mention(match)
+    @unresolved_mentions << match
+    match
   end
 end

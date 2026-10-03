@@ -22,12 +22,14 @@ class UpdateStatusService < BaseService
     @account_id                = account_id
     @media_attachments_changed = false
     @poll_changed              = false
+    @ruridot_guarded           = ValidateRuridotInteractionService.guarded?(@status.account)
 
     Status.transaction do
       create_previous_edit!
       update_media_attachments! if @options.key?(:media_ids)
       update_poll! if @options.key?(:poll)
       update_immediate_attributes!
+      validate_ruridot_interactions! if @ruridot_guarded
       create_edit!
     end
 
@@ -128,7 +130,7 @@ class UpdateStatusService < BaseService
   end
 
   def reset_preview_card!
-    return unless @status.text_previously_changed?
+    return unless @ruridot_guarded ? @text_changed : @status.text_previously_changed?
 
     @status.reset_preview_card!
     LinkCrawlWorker.perform_async(@status.id)
@@ -136,8 +138,18 @@ class UpdateStatusService < BaseService
 
   def update_metadata!
     ProcessHashtagsService.new.call(@status)
-    ProcessMentionsService.new.call(@status)
+    ProcessMentionsService.new.call(@status) unless @ruridot_guarded
     ProcessLinksService.new.call(@status)
+  end
+
+  def validate_ruridot_interactions!
+    # Mention processing can save the canonicalized text again. Keep the text
+    # change flag for preview invalidation, and keep every mutation in the outer
+    # transaction so a rejected edit leaves no durable status/media/poll/history.
+    @text_changed = @status.text_previously_changed?
+    service = ProcessMentionsService.new
+    service.call(@status)
+    ValidateRuridotInteractionService.new.call(@status, unresolved_mentions: service.unresolved_mentions)
   end
 
   def broadcast_updates!
