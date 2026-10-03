@@ -28,6 +28,8 @@ class UpdateStatusService < BaseService
       create_previous_edit!
       if @ruridot_guarded
         assign_immediate_attributes!
+        raise NoChangesSubmittedError if no_update_work?
+
         validate_ruridot_interactions!
       end
       update_media_attachments! if @options.key?(:media_ids)
@@ -191,5 +193,15 @@ class UpdateStatusService < BaseService
 
   def significant_changes?
     @status.changed? || @poll_changed || @media_attachments_changed
+  end
+
+  def no_update_work?
+    return false if significant_changes?
+    return false if @options.key?(:media_ids) && (@options[:media_ids].present? || @options[:media_attributes].present? || @status.with_media?)
+    return false if @options.key?(:poll) && (@options[:poll].present? || @status.poll_id.present?)
+
+    # Preserve the existing non-publishing return for an unchanged edit. Any
+    # possible media or poll work still goes through recipient validation first.
+    true
   end
 end

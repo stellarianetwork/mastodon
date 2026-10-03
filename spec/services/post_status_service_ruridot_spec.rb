@@ -350,6 +350,20 @@ RSpec.describe PostStatusService do
       expect(ActivityPub::StatusUpdateDistributionWorker).to_not have_received(:perform_async)
     end
 
+    it 'returns an unchanged addressed post without publishing after its recipient unfollows' do
+      recipient.follow!(account)
+      addressed = described_class.new.call(account, text: "@#{recipient.acct} Original")
+      recipient.unfollow!(account)
+
+      result = UpdateStatusService.new.call(addressed, account.id, text: addressed.text)
+
+      expect(result).to eq addressed
+      expect(addressed.reload.edits).to be_empty
+      expect(addressed.mentions.sole).to have_attributes(account_id: recipient.id, silent: false)
+      expect(DistributionWorker).to_not have_received(:perform_async).with(addressed.id, { 'update' => true })
+      expect(ActivityPub::StatusUpdateDistributionWorker).to_not have_received(:perform_async)
+    end
+
     it 'rejects a newly added uninvited mention without changing the saved post' do
       expect do
         UpdateStatusService.new.call(status, account.id, text: "Changed @#{recipient.acct}")
