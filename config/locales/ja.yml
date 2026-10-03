@@ -1830,8 +1830,6 @@ ja:
     purged: 管理者がサーバーの情報を削除したため表示できません。
     type: 理由
   statuses:
-    errors:
-      ruridot_interaction_not_invited: ruridotが宛先にできるのは、現在のフォロワー、または返信・引用元の投稿でruridotを明示的にメンションしている投稿者だけです。
     attached:
       audio:
         other: "%{count}本のオーディオ"
@@ -1848,6 +1846,7 @@ ja:
     edited_at_html: "%{date} 編集済み"
     errors:
       in_reply_not_found: あなたが返信しようとしている投稿は存在しないようです。
+      ruridot_interaction_not_invited: ruridotが宛先にできるのは、現在のフォロワー、または返信・引用元の投稿でruridotを明示的にメンションしている投稿者だけです。
     over_character_limit: 上限は%{max}文字です
     pin_errors:
       direct: 返信したユーザーのみに表示される投稿はピン留めできません

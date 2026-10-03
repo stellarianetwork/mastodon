@@ -24,7 +24,8 @@ class ValidateRuridotInteractionService < BaseService
 
     recipient_ids = status.mentions.map(&:account_id)
     recipient_ids << effective_reply_recipient_id if @thread
-    recipient_ids << (@quoted_status&.account_id || status.quote&.quoted_account_id) if @quoted_status || status.quote
+    recipient_ids << @quoted_status.account_id if @quoted_status
+    recipient_ids << status.quote.quoted_account_id if status.quote
 
     recipient_ids.uniq.each do |recipient_id|
       next if recipient_id == @account.id

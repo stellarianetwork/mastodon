@@ -236,4 +236,27 @@ RSpec.describe ValidateRuridotInteractionService do
       end
     end
   end
+
+  context 'with persisted quote routing' do
+    let(:status) { Fabricate(:status, account: account) }
+    let(:quoted_status) { Fabricate(:status, account: recipient) }
+    let(:quote) { Fabricate(:quote, status: status, quoted_status: quoted_status) }
+
+    before do
+      recipient.follow!(account)
+      quote.update_column(:quoted_account_id, Fabricate(:account).id)
+      status.reload
+    end
+
+    it 'checks the actual quote destination independently of the quoted source author' do
+      expect { validate }.to raise_error(ActiveRecord::RecordInvalid)
+    end
+
+    it 'rejects missing destination data' do
+      quote.update_column(:quoted_account_id, nil)
+      status.reload
+
+      expect { validate }.to raise_error(ActiveRecord::RecordInvalid)
+    end
+  end
 end

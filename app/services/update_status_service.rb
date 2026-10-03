@@ -130,7 +130,8 @@ class UpdateStatusService < BaseService
   end
 
   def reset_preview_card!
-    return unless @ruridot_guarded ? @text_changed : @status.text_previously_changed?
+    text_changed = @ruridot_guarded ? @text_changed : @status.text_previously_changed?
+    return unless text_changed
 
     @status.reset_preview_card!
     LinkCrawlWorker.perform_async(@status.id)

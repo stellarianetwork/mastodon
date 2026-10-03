@@ -222,6 +222,8 @@ class PostStatusService < BaseService
   def process_mentions!(status)
     service = process_mentions_service
     service.call(status)
+    return unless ValidateRuridotInteractionService.guarded?(@account)
+
     ValidateRuridotInteractionService.new.call(status, quoted_status: @quoted_status, unresolved_mentions: service.unresolved_mentions)
   end
 
