@@ -66,7 +66,9 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
   end
 
   context 'when mention resolution cannot find an account' do
-    before { allow_any_instance_of(ResolveAccountService).to receive(:call).and_return(nil) }
+    let(:resolver) { instance_double(ResolveAccountService, call: nil) }
+
+    before { allow(ResolveAccountService).to receive(:new).and_return(resolver) }
 
     it 'rejects ruridot rather than publishing unresolved addressing text' do
       expect do
@@ -80,6 +82,31 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
 
       expect(status).to be_persisted
     end
+
+    it 'rejects a resolver error instead of silently publishing' do
+      allow(resolver).to receive(:call).and_raise(Webfinger::Error)
+
+      expect do
+        described_class.new.call(account, text: '@missing@example.test Hello')
+      end.to raise_error(ActiveRecord::RecordInvalid)
+      expect(account.statuses).to be_empty
+    end
+  end
+
+  it 'rejects addressing an unapproved local account' do
+    recipient.user.update!(approved: false)
+
+    expect do
+      described_class.new.call(account, text: "@#{recipient.acct} Hello")
+    end.to raise_error(ActiveRecord::RecordInvalid)
+  end
+
+  it 'rejects addressing an unavailable account' do
+    recipient.suspend!
+
+    expect do
+      described_class.new.call(account, text: "@#{recipient.acct} Hello")
+    end.to raise_error(ActiveRecord::RecordInvalid)
   end
 
   context 'when scheduling' do
