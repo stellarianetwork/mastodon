@@ -2,7 +2,7 @@
 
 This draft is based on `stellarianetwork/mastodon` branch `ver4.7.3`, commit
 `6c2e9ffbdac582920dae89f7f44d94c1b8cacda3`. It does not deploy anything or
-change the operational pause on autonomous outgoing activity.
+execute live Mastodon interactions.
 
 ## Intended policy
 
@@ -37,13 +37,39 @@ than retried. This draft does not replace that scheduling behavior.
 
 Existing queued distribution, arbitrary links/plain text references, favourites,
 boosts and follows are outside this post/edit/schedule validation boundary.
+Ordinary follower, relay, hashtag and existing-interactor distribution remains
+Mastodon's responsibility. This guard checks authored directed interactions;
+it does not claim that every eventual delivery recipient is individually invited.
 
-All authored implementation and test sources will be committed to the public
-head branch before execution. No live Mastodon writes are used for testing.
+All authored implementation and test sources are committed to the public head
+branch. No live Mastodon writes are used for testing.
 
 ### Verification status
 
-Implementation has not yet been added. The current workspace has no Ruby,
-Bundler, PostgreSQL, Redis or Docker runtime. The checkout's isolated Docker
-verification procedure cannot run here as-is. An official dependency runtime is
-being evaluated; no Rails integration test result is claimed at this stage.
+The implementation and focused Rails service/request specs are included. Ruby
+syntax and whitespace checks passed. The locked bundle installs successfully
+with the exact repository-pinned Ruby 4.0.6 in a private dependency prefix.
+
+Local Rails integration execution is blocked: this sandbox refuses to create
+even private PostgreSQL/Redis Unix sockets, including through its supported
+escalation route. Docker is unavailable. RuboCop and the existing public PR CI
+are being checked; no Rails integration pass is claimed at this stage.
+
+Focused regression command:
+
+```sh
+bundle exec rspec spec/services/validate_ruridot_interaction_service_spec.rb \
+  spec/services/post_status_service_ruridot_spec.rb \
+  spec/requests/api/v1/ruridot_statuses_spec.rb \
+  spec/services/post_status_service_spec.rb \
+  spec/services/update_status_service_spec.rb \
+  spec/services/process_mentions_service_spec.rb \
+  spec/workers/publish_scheduled_status_worker_spec.rb
+```
+
+Tests use fabricated accounts/statuses and intercepted remote resolution. They
+cover create, edit and schedule rejection through existing 422 handling, follower
+direction, pending requests, current explicit versus silent invitations,
+self-reply continuations and broken chains, quote routing, extra recipients,
+resolver failures, rollback of media/polls/votes/mentions/history, preview reset,
+normal independent media/poll posting and publication-time schedule revalidation.
