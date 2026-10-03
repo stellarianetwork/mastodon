@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe PostStatusService, 'ruridot publication boundary' do
+RSpec.describe PostStatusService do
   let(:account) { Fabricate(:account, username: 'ruridot') }
   let(:recipient) { Fabricate(:account) }
 
@@ -28,14 +28,16 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
     media = Fabricate(:media_attachment, account: account)
     quoted_status = Fabricate(:status, account: recipient)
 
-    expect(ProcessLinksService).to_not receive(:new)
-    expect(Quote).to_not receive(:create)
+    allow(ProcessLinksService).to receive(:new).and_call_original
+    allow(Quote).to receive(:create).and_call_original
     expect do
       described_class.new.call(account, text: "Hello @#{recipient.acct}", quoted_status: quoted_status, media_ids: [media.id])
     end.to raise_error(ActiveRecord::RecordInvalid)
 
     expect(account.statuses.reload).to be_empty
     expect(media.reload.status_id).to be_nil
+    expect(ProcessLinksService).to_not have_received(:new)
+    expect(Quote).to_not have_received(:create)
     expect(DistributionWorker).to_not have_received(:perform_async)
     expect(ActivityPub::DistributionWorker).to_not have_received(:perform_async)
   end
@@ -157,42 +159,96 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
       expect(published.text).to eq 'Independent future'
       expect(ScheduledStatus.find_by(id: scheduled.id)).to be_nil
     end
+
+    context 'with an allowed follower mention, quote and media' do
+      let(:media) { Fabricate(:media_attachment, account: account) }
+      let(:quoted_status) { Fabricate(:status, account: recipient) }
+
+      before do
+        recipient.follow!(account)
+        media
+        quoted_status
+      end
+
+      it 'stages media without persisting status, mention, quote or distribution effects' do
+        scheduled = nil
+
+        expect do
+          scheduled = described_class.new.call(account, text: "@#{recipient.acct} Future", media_ids: [media.id], quoted_status: quoted_status, scheduled_at: 2.hours.from_now)
+        end.to not_change { Status.count }
+          .and(not_change { Mention.count })
+          .and(not_change { Quote.count })
+
+        expect(media.reload).to have_attributes(status_id: nil, scheduled_status_id: scheduled.id)
+        expect(account.statuses.reload).to be_empty
+        expect(DistributionWorker).to_not have_received(:perform_async)
+      end
+
+      it 'attaches the staged media and quote when publication is still permitted' do
+        scheduled = described_class.new.call(account, text: "@#{recipient.acct} Future", media_ids: [media.id], quoted_status: quoted_status, scheduled_at: 2.hours.from_now)
+
+        PublishScheduledStatusWorker.new.perform(scheduled.id)
+
+        published = account.statuses.reload.sole
+        expect(published).to be_persisted
+        expect(media.reload).to have_attributes(status_id: published.id, scheduled_status_id: nil)
+        expect(published.quote.quoted_status).to eq quoted_status
+      end
+    end
   end
 
   context 'when editing' do
-    let(:status) { Fabricate(:status, account: account, text: 'Original') }
+    let(:status) { Fabricate(:status, account: account, text: 'Original', language: 'en') }
 
-    it 'rolls back text, media, polls, mentions and edit history on rejection' do
-      original_media = Fabricate(:media_attachment, account: account, status: status)
-      replacement_media = Fabricate(:media_attachment, account: account)
-      poll = Fabricate(:poll, account: account, status: status)
-      status.update!(poll_id: poll.id, ordered_media_attachment_ids: [original_media.id])
-      vote = Fabricate(:poll_vote, poll: poll)
-      expect(status.preloadable_poll).to eq poll
-      recipient.follow!(account)
-      original_mention = Fabricate(:mention, account: recipient, status: status)
-      recipient.unfollow!(account)
-      original_poll_options = poll.options.dup
-
-      expect do
+    context 'when a rejected edit would mutate existing media and a poll' do
+      subject(:attempt_edit) do
         UpdateStatusService.new.call(status, account.id,
                                      text: 'Changed',
                                      media_ids: [replacement_media.id],
                                      media_attributes: [{ id: replacement_media.id, description: 'Changed description' }],
                                      poll: { options: %w(Changed Choices), multiple: false, expires_in: 3_600 })
-      end.to raise_error(ActiveRecord::RecordInvalid)
+      end
 
-      expect(status.reload.text).to eq 'Original'
-      expect(status.ordered_media_attachment_ids).to eq [original_media.id]
-      expect(status.edits).to be_empty
-      expect(replacement_media.reload.status_id).to be_nil
-      expect(replacement_media.description).to_not eq 'Changed description'
-      expect(poll.reload.options).to eq original_poll_options
-      expect(poll.votes).to include(vote)
-      expect(original_mention.reload).to_not be_silent
+      let(:original_media) { Fabricate(:media_attachment, account: account, status: status) }
+      let(:replacement_media) { Fabricate(:media_attachment, account: account, description: nil) }
+      let(:poll) { Fabricate(:poll, account: account, status: status) }
+      let(:vote) { Fabricate(:poll_vote, poll: poll) }
+      let(:original_mention) { Fabricate(:mention, account: recipient, status: status) }
+
+      before do
+        status.update!(poll_id: poll.id, ordered_media_attachment_ids: [original_media.id])
+        vote
+        recipient.follow!(account)
+        original_mention
+        recipient.unfollow!(account)
+      end
+
+      it 'rolls back text, media, polls, votes, mentions and edit history' do
+        expect(status.preloadable_poll).to eq poll
+        expect { attempt_edit }.to raise_error(ActiveRecord::RecordInvalid)
+        expect(status.reload).to have_attributes(text: 'Original', ordered_media_attachment_ids: [original_media.id])
+        expect(status.edits).to be_empty
+        expect(replacement_media.reload).to have_attributes(status_id: nil, description: nil)
+        expect(poll.reload.options).to eq %w(Foo Bar)
+        expect(poll.votes).to include(vote)
+        expect(original_mention.reload).to_not be_silent
+      end
+
+      it 'does not enqueue publication or preview work' do
+        expect { attempt_edit }.to raise_error(ActiveRecord::RecordInvalid)
+        expect(DistributionWorker).to_not have_received(:perform_async)
+        expect(ActivityPub::StatusUpdateDistributionWorker).to_not have_received(:perform_async)
+        expect(LinkCrawlWorker).to_not have_received(:perform_async)
+      end
+    end
+
+    it 'preserves a no-op edit without creating history or distribution' do
+      result = UpdateStatusService.new.call(status, account.id, text: 'Original')
+
+      expect(result).to eq status
+      expect(status.reload.edits).to be_empty
       expect(DistributionWorker).to_not have_received(:perform_async)
       expect(ActivityPub::StatusUpdateDistributionWorker).to_not have_received(:perform_async)
-      expect(LinkCrawlWorker).to_not have_received(:perform_async)
     end
 
     it 'rejects a newly added uninvited mention without changing the saved post' do
