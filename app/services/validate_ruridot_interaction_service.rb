@@ -67,7 +67,7 @@ class ValidateRuridotInteractionService < BaseService
   end
 
   def reject!
-    @status.errors.add(:base, 'ruridot can only target current followers or authors explicitly addressing it in the current reply or quote context')
+    @status.errors.add(:base, I18n.t('statuses.errors.ruridot_interaction_not_invited'))
     raise ActiveRecord::RecordInvalid, @status
   end
 end
