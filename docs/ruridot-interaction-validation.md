@@ -49,6 +49,8 @@ bundle exec rspec spec/services/validate_ruridot_interaction_service_spec.rb \
 
 ## 検証状況
 
+この節はCI実行前の記録です。最新の結果は[PR #58のChecks](https://github.com/stellarianetwork/mastodon/pull/58/checks)で確認できます。
+
 Rubyの構文検査、`git diff --check`、変更したRuby実装・specのRuboCopを実行しています。ローカルではRuby 4.0.6と固定された依存関係を用意しましたが、PostgreSQL・RedisのUnixソケット作成が環境に拒否されるため、Rails specはDB接続前に停止します。
 
 サムネイル更新順序の修正前の`0934883`と、修正後のコードの結果を分けて記録します。修正後の実際のDB付きテストは、このPRの既存GitHub Actionsで確認中です。修正前の成功だけを、修正後の成功として扱いません。
