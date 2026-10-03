@@ -48,6 +48,59 @@ RSpec.describe PostStatusService do
     end.to raise_error(ActiveRecord::RecordInvalid)
   end
 
+  it 'rejects mixed allowed and uninvited resolved recipients before publishing' do
+    recipient.follow!(account)
+    uninvited = Fabricate(:account)
+
+    expect do
+      described_class.new.call(account, text: "@#{recipient.acct} @#{uninvited.acct} Hello")
+    end.to raise_error(ActiveRecord::RecordInvalid)
+
+    expect(account.statuses.reload).to be_empty
+    expect(DistributionWorker).to_not have_received(:perform_async)
+  end
+
+  it 'does not publish when the current follow lookup fails' do
+    allow(Follow).to receive(:exists?).and_raise(ActiveRecord::ConnectionNotEstablished)
+
+    expect do
+      described_class.new.call(account, text: "@#{recipient.acct} Hello")
+    end.to raise_error(ActiveRecord::ConnectionNotEstablished)
+
+    expect(account.statuses.reload).to be_empty
+    expect(DistributionWorker).to_not have_received(:perform_async)
+  end
+
+  it 'does not publish when the current source mention lookup fails' do
+    incoming = Fabricate(:status, account: recipient)
+    mentions = incoming.active_mentions
+    allow(incoming).to receive(:active_mentions).and_return(mentions)
+    allow(mentions).to receive(:exists?).and_raise(ActiveRecord::ConnectionNotEstablished)
+
+    expect do
+      described_class.new.call(account, text: 'Reply', thread: incoming)
+    end.to raise_error(ActiveRecord::ConnectionNotEstablished)
+
+    expect(account.statuses.reload).to be_empty
+    expect(DistributionWorker).to_not have_received(:perform_async)
+  end
+
+  context 'with a remote follower' do
+    let(:recipient) { Fabricate(:account, username: 'remote_follower', domain: 'example.test', protocol: :activitypub) }
+
+    before { recipient.follow!(account) }
+
+    it 'allows its resolved mention at creation and edit' do
+      status = described_class.new.call(account, text: "@#{recipient.acct} Hello")
+
+      UpdateStatusService.new.call(status, account.id, text: "@#{recipient.acct} Changed")
+
+      expect(status.reload.text).to eq "@#{recipient.acct} Changed"
+      expect(status.mentions.reload.pluck(:account_id)).to eq [recipient.id]
+      expect(status.edits.ordered.pluck(:text)).to eq ["@#{recipient.acct} Hello", "@#{recipient.acct} Changed"]
+    end
+  end
+
   it 'allows invited replies and their self-reply continuations through actual routing' do
     incoming = Fabricate(:status, account: recipient)
     Fabricate(:mention, status: incoming, account: account)
@@ -298,6 +351,42 @@ RSpec.describe PostStatusService do
       expect do
         UpdateStatusService.new.call(status, Fabricate(:account).id, text: "@#{recipient.acct} Changed")
       end.to raise_error(ActiveRecord::RecordInvalid)
+    end
+
+    it 'rolls back an edit when the current follow lookup fails' do
+      allow(Follow).to receive(:exists?).and_raise(ActiveRecord::ConnectionNotEstablished)
+
+      expect do
+        UpdateStatusService.new.call(status, account.id, text: "@#{recipient.acct} Changed")
+      end.to raise_error(ActiveRecord::ConnectionNotEstablished)
+
+      expect(status.reload.text).to eq 'Original'
+      expect(status.mentions).to be_empty
+      expect(status.edits).to be_empty
+      expect(ActivityPub::StatusUpdateDistributionWorker).to_not have_received(:perform_async)
+    end
+
+    context 'when a quote invitation was withdrawn' do
+      let(:quoted_status) { Fabricate(:status, account: recipient) }
+      let(:invitation) { Fabricate(:mention, status: quoted_status, account: account) }
+      let(:status) { described_class.new.call(account, text: 'Allowed quote', quoted_status: quoted_status) }
+
+      before do
+        invitation
+        status
+        invitation.destroy!
+      end
+
+      it 'rechecks the quote author and retained silent recipient before editing' do
+        expect do
+          UpdateStatusService.new.call(status, account.id, text: 'Changed quote')
+        end.to raise_error(ActiveRecord::RecordInvalid)
+
+        expect(status.reload.text).to eq 'Allowed quote'
+        expect(status.edits).to be_empty
+        expect(status.mentions.find_by(account: recipient)).to be_silent
+        expect(ActivityPub::StatusUpdateDistributionWorker).to_not have_received(:perform_async)
+      end
     end
   end
 end
