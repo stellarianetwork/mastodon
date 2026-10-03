@@ -26,10 +26,13 @@ class UpdateStatusService < BaseService
 
     Status.transaction do
       create_previous_edit!
+      if @ruridot_guarded
+        assign_immediate_attributes!
+        validate_ruridot_interactions!
+      end
       update_media_attachments! if @options.key?(:media_ids)
       update_poll! if @options.key?(:poll)
       update_immediate_attributes!
-      validate_ruridot_interactions! if @ruridot_guarded
       create_edit!
     end
 
@@ -112,7 +115,7 @@ class UpdateStatusService < BaseService
     @poll_changed = true if @previous_expires_at != @status.preloadable_poll&.expires_at
   end
 
-  def update_immediate_attributes!
+  def assign_immediate_attributes!
     if @options.key?(:text)
       @status.text = @options[:text].presence || ''
       @status.text = @options.delete(:spoiler_text) || '' if @status.text.blank? && @status.quote.blank?
@@ -121,6 +124,10 @@ class UpdateStatusService < BaseService
     @status.sensitive    = @options[:sensitive] || @options[:spoiler_text].present? if @options.key?(:sensitive) || @options.key?(:spoiler_text)
     @status.language     = valid_locale_cascade(@options[:language], @status.language, @status.account.user&.preferred_posting_language, I18n.default_locale)
     @status.quote_approval_policy = @options[:quote_approval_policy] if @options[:quote_approval_policy].present?
+  end
+
+  def update_immediate_attributes!
+    assign_immediate_attributes! unless @ruridot_guarded
 
     # We raise here to rollback the entire transaction
     raise NoChangesSubmittedError unless significant_changes?
@@ -130,8 +137,7 @@ class UpdateStatusService < BaseService
   end
 
   def reset_preview_card!
-    text_changed = @ruridot_guarded ? @text_changed : @status.text_previously_changed?
-    return unless text_changed
+    return unless @status.text_previously_changed?
 
     @status.reset_preview_card!
     LinkCrawlWorker.perform_async(@status.id)
@@ -144,12 +150,11 @@ class UpdateStatusService < BaseService
   end
 
   def validate_ruridot_interactions!
-    # Mention processing can save the canonicalized text again. Keep the text
-    # change flag for preview invalidation, and keep every mutation in the outer
-    # transaction so a rejected edit leaves no durable status/media/poll/history.
-    @text_changed = @status.text_previously_changed?
+    # Reject before attachment updates, whose file writes cannot be rolled back
+    # by the DB transaction. Keep mention mutations inside that transaction, but
+    # defer status validation/save until the proposed media and poll are attached.
     service = ProcessMentionsService.new
-    service.call(@status)
+    service.call(@status, persist_status: false)
     ValidateRuridotInteractionService.new.call(@status, unresolved_mentions: service.unresolved_mentions)
   end
 

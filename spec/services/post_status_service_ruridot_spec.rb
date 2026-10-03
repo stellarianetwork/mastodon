@@ -253,6 +253,52 @@ RSpec.describe PostStatusService do
   context 'when editing' do
     let(:status) { Fabricate(:status, account: account, text: 'Original', language: 'en') }
 
+    it 'allows clearing text when adding media before the final status validation' do
+      media = Fabricate(:media_attachment, account: account)
+
+      UpdateStatusService.new.call(status, account.id, text: '', media_ids: [media.id])
+
+      expect(status.reload.text).to be_empty
+      expect(status.ordered_media_attachment_ids).to eq [media.id]
+      expect(media.reload.status_id).to eq status.id
+    end
+
+    context 'with an existing video thumbnail' do
+      let(:media) { Fabricate(:media_attachment, account: account, status: status, type: :video, thumbnail: attachment_fixture('attachment.jpg')) }
+      let(:options) do
+        {
+          text: "@#{recipient.acct} Changed",
+          media_ids: [media.id],
+          media_attributes: [{ id: media.id, thumbnail: attachment_fixture('600x400.png') }],
+        }
+      end
+
+      before { status.update!(ordered_media_attachment_ids: [media.id]) }
+
+      it 'rejects before media updates and preserves the original thumbnail bytes' do
+        service = UpdateStatusService.new
+        original_thumbnail = File.binread(media.thumbnail.path(:original))
+        allow(service).to receive(:update_media_attachments!).and_call_original
+
+        expect { service.call(status, account.id, options) }.to raise_error(ActiveRecord::RecordInvalid)
+
+        expect(service).to_not have_received(:update_media_attachments!)
+        expect(File.binread(media.thumbnail.path(:original))).to eq original_thumbnail
+        expect(status.reload.text).to eq 'Original'
+        expect(status.edits).to be_empty
+      end
+
+      it 'preserves allowed thumbnail edits' do
+        recipient.follow!(account)
+
+        UpdateStatusService.new.call(status, account.id, options)
+
+        expect(status.reload.text).to eq "@#{recipient.acct} Changed"
+        expect(media.reload.thumbnail_file_name).to eq '600x400.png'
+        expect(media.thumbnail_content_type).to eq 'image/png'
+      end
+    end
+
     context 'when a rejected edit would mutate existing media and a poll' do
       subject(:attempt_edit) do
         UpdateStatusService.new.call(status, account.id,

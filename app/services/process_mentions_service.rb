@@ -8,8 +8,9 @@ class ProcessMentionsService < BaseService
   # Scan status for mentions and fetch remote mentioned users,
   # and create local mention pointers
   # @param [Status] status
-  def call(status)
+  def call(status, persist_status: true)
     @status = status
+    @persist_status = persist_status
     @unresolved_mentions = []
 
     return unless @status.local?
@@ -65,7 +66,7 @@ class ProcessMentionsService < BaseService
       "@#{mentioned_account.acct}"
     end
 
-    @status.save! if @status.persisted?
+    @status.save! if @status.persisted? && @persist_status
   end
 
   def assign_mentions!
