@@ -34,7 +34,7 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
       described_class.new.call(account, text: "Hello @#{recipient.acct}", quoted_status: quoted_status, media_ids: [media.id])
     end.to raise_error(ActiveRecord::RecordInvalid)
 
-    expect(account.statuses).to be_empty
+    expect(account.statuses.reload).to be_empty
     expect(media.reload.status_id).to be_nil
     expect(DistributionWorker).to_not have_received(:perform_async)
     expect(ActivityPub::DistributionWorker).to_not have_received(:perform_async)
@@ -74,7 +74,7 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
       expect do
         described_class.new.call(account, text: '@missing@example.test Hello')
       end.to raise_error(ActiveRecord::RecordInvalid)
-      expect(account.statuses).to be_empty
+      expect(account.statuses.reload).to be_empty
     end
 
     it 'preserves unresolved mention behavior for other local accounts' do
@@ -89,7 +89,7 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
       expect do
         described_class.new.call(account, text: '@missing@example.test Hello')
       end.to raise_error(ActiveRecord::RecordInvalid)
-      expect(account.statuses).to be_empty
+      expect(account.statuses.reload).to be_empty
     end
   end
 
@@ -115,7 +115,7 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
 
       expect(scheduled).to be_a(ScheduledStatus)
       expect(scheduled).to be_persisted
-      expect(account.statuses).to be_empty
+      expect(account.statuses.reload).to be_empty
     end
 
     it 'rejects uninvited addressing before accepting a schedule' do
@@ -132,7 +132,7 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
 
       expect(PublishScheduledStatusWorker.new.perform(scheduled.id)).to be true
       expect(ScheduledStatus.find_by(id: scheduled.id)).to be_nil
-      expect(account.statuses).to be_empty
+      expect(account.statuses.reload).to be_empty
       expect(DistributionWorker).to_not have_received(:perform_async)
     end
 
@@ -144,7 +144,7 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
 
       expect(PublishScheduledStatusWorker.new.perform(scheduled.id)).to be true
       expect(ScheduledStatus.find_by(id: scheduled.id)).to be_nil
-      expect(account.statuses).to be_empty
+      expect(account.statuses.reload).to be_empty
     end
 
     it 'publishes an independent schedule normally' do
@@ -152,7 +152,9 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
 
       PublishScheduledStatusWorker.new.perform(scheduled.id)
 
-      expect(account.statuses.first.text).to eq 'Independent future'
+      published = account.statuses.reload.sole
+      expect(published).to be_persisted
+      expect(published.text).to eq 'Independent future'
       expect(ScheduledStatus.find_by(id: scheduled.id)).to be_nil
     end
   end
@@ -164,7 +166,9 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
       original_media = Fabricate(:media_attachment, account: account, status: status)
       replacement_media = Fabricate(:media_attachment, account: account)
       poll = Fabricate(:poll, account: account, status: status)
-      status.update!(poll: poll, ordered_media_attachment_ids: [original_media.id])
+      status.update!(poll_id: poll.id, ordered_media_attachment_ids: [original_media.id])
+      vote = Fabricate(:poll_vote, poll: poll)
+      expect(status.preloadable_poll).to eq poll
       recipient.follow!(account)
       original_mention = Fabricate(:mention, account: recipient, status: status)
       recipient.unfollow!(account)
@@ -184,6 +188,7 @@ RSpec.describe PostStatusService, 'ruridot publication boundary' do
       expect(replacement_media.reload.status_id).to be_nil
       expect(replacement_media.description).to_not eq 'Changed description'
       expect(poll.reload.options).to eq original_poll_options
+      expect(poll.votes).to include(vote)
       expect(original_mention.reload).to_not be_silent
       expect(DistributionWorker).to_not have_received(:perform_async)
       expect(ActivityPub::StatusUpdateDistributionWorker).to_not have_received(:perform_async)
