@@ -50,10 +50,11 @@ The implementation and focused Rails service/request specs are included. Ruby
 syntax and whitespace checks passed. The locked bundle installs successfully
 with the exact repository-pinned Ruby 4.0.6 in a private dependency prefix.
 
-Local Rails integration execution is blocked: this sandbox refuses to create
+RuboCop passed for all seven changed Ruby implementation/spec files. Local Rails
+integration execution is blocked: this sandbox refuses to create
 even private PostgreSQL/Redis Unix sockets, including through its supported
-escalation route. Docker is unavailable. RuboCop and the existing public PR CI
-are being checked; no Rails integration pass is claimed at this stage.
+escalation route. Docker is unavailable. The existing public PR CI is being
+checked; no Rails integration pass is claimed at this stage.
 
 Focused regression command:
 
