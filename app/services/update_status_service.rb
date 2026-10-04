@@ -22,9 +22,16 @@ class UpdateStatusService < BaseService
     @account_id                = account_id
     @media_attachments_changed = false
     @poll_changed              = false
+    @ruridot_guarded           = ValidateRuridotInteractionService.guarded?(@status.account)
 
     Status.transaction do
       create_previous_edit!
+      if @ruridot_guarded
+        assign_immediate_attributes!
+        raise NoChangesSubmittedError if no_update_work?
+
+        validate_ruridot_interactions!
+      end
       update_media_attachments! if @options.key?(:media_ids)
       update_poll! if @options.key?(:poll)
       update_immediate_attributes!
@@ -110,7 +117,7 @@ class UpdateStatusService < BaseService
     @poll_changed = true if @previous_expires_at != @status.preloadable_poll&.expires_at
   end
 
-  def update_immediate_attributes!
+  def assign_immediate_attributes!
     if @options.key?(:text)
       @status.text = @options[:text].presence || ''
       @status.text = @options.delete(:spoiler_text) || '' if @status.text.blank? && @status.quote.blank?
@@ -119,6 +126,10 @@ class UpdateStatusService < BaseService
     @status.sensitive    = @options[:sensitive] || @options[:spoiler_text].present? if @options.key?(:sensitive) || @options.key?(:spoiler_text)
     @status.language     = valid_locale_cascade(@options[:language], @status.language, @status.account.user&.preferred_posting_language, I18n.default_locale)
     @status.quote_approval_policy = @options[:quote_approval_policy] if @options[:quote_approval_policy].present?
+  end
+
+  def update_immediate_attributes!
+    assign_immediate_attributes! unless @ruridot_guarded
 
     # We raise here to rollback the entire transaction
     raise NoChangesSubmittedError unless significant_changes?
@@ -136,8 +147,17 @@ class UpdateStatusService < BaseService
 
   def update_metadata!
     ProcessHashtagsService.new.call(@status)
-    ProcessMentionsService.new.call(@status)
+    ProcessMentionsService.new.call(@status) unless @ruridot_guarded
     ProcessLinksService.new.call(@status)
+  end
+
+  def validate_ruridot_interactions!
+    # Reject before attachment updates, whose file writes cannot be rolled back
+    # by the DB transaction. Keep mention mutations inside that transaction, but
+    # defer status validation/save until the proposed media and poll are attached.
+    service = ProcessMentionsService.new
+    service.call(@status, persist_status: false)
+    ValidateRuridotInteractionService.new.call(@status, unresolved_mentions: service.unresolved_mentions)
   end
 
   def broadcast_updates!
@@ -173,5 +193,15 @@ class UpdateStatusService < BaseService
 
   def significant_changes?
     @status.changed? || @poll_changed || @media_attachments_changed
+  end
+
+  def no_update_work?
+    return false if significant_changes?
+    return false if @options.key?(:media_ids) && (@options[:media_ids].present? || @options[:media_attributes].present? || @status.with_media?)
+    return false if @options.key?(:poll) && (@options[:poll].present? || @status.poll_id.present?)
+
+    # Preserve the existing non-publishing return for an unchanged edit. Any
+    # possible media or poll work still goes through recipient validation first.
+    true
   end
 end
