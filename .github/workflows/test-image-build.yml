@@ -2,6 +2,7 @@ name: Test container image build
 on:
   pull_request:
     paths:
+      - .github/workflows/build-container-image.yml
       - .github/workflows/build-nightly.yml
       - .github/workflows/build-push-pr.yml
       - .github/workflows/build-releases.yml
