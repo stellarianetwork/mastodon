@@ -1,5 +1,11 @@
 name: Build container release images
 on:
+  workflow_dispatch:
+    inputs:
+      release_number:
+        description: 'Stellaria release number (positive integer, for example 1)'
+        required: true
+        type: string
   push:
     tags:
       - '*'
@@ -13,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       latest: ${{ steps.check.outputs.is_latest_stable }}
+      tags: ${{ steps.check.outputs.tags }}
+      metadata: ${{ steps.check.outputs.metadata }}
     steps:
       # Repository needs to be cloned to list branches
       - name: Clone repository
@@ -20,10 +28,41 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check latest stable
+      - name: Prepare release tags
         shell: bash
         id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_NUMBER: ${{ inputs.release_number }}
         run: |
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            if [[ ! "$RELEASE_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+              echo '::error::Release number must be a positive integer.'
+              exit 1
+            fi
+
+            version=$(ruby -r ./lib/mastodon/version.rb -e 'puts Mastodon::Version.to_a.join(".")')
+            image_tag="v${version}-stellaria.${RELEASE_NUMBER}"
+            if (( ${#image_tag} > 128 )); then
+              echo '::error::Release number produces a Docker tag longer than 128 characters.'
+              exit 1
+            fi
+
+            {
+              echo "tags=type=raw,value=$image_tag"
+              echo "metadata=stellaria.$RELEASE_NUMBER"
+              echo 'is_latest_stable=true'
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo 'tags<<RELEASE_TAGS'
+            echo 'type=pep440,pattern={{raw}}'
+            echo 'type=pep440,pattern=v{{major}}.{{minor}}'
+            echo 'RELEASE_TAGS'
+          } >> "$GITHUB_OUTPUT"
+
           ref="${GITHUB_REF#refs/tags/}"
 
           if [[ "$ref" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?$ ]]; then
@@ -54,13 +93,11 @@ jobs:
         eaaaaaaaaaaai/stellaria-mastodon
       # Do not use cache when building releases, so apt update is always ran and the release always contain the latest packages
       cache: false
-      # Only tag with latest when ran against the latest stable branch
-      # This needs to be updated after each minor version release
+      version_metadata: ${{ needs.check-latest-stable.outputs.metadata }}
+      # Manual releases update latest; tag pushes use the latest stable check.
       flavor: |
         latest=${{ needs.check-latest-stable.outputs.latest }}
-      tags: |
-        type=pep440,pattern={{raw}}
-        type=pep440,pattern=v{{major}}.{{minor}}
+      tags: ${{ needs.check-latest-stable.outputs.tags }}
     secrets: inherit
 
   build-image-streaming:
@@ -72,11 +109,9 @@ jobs:
         eaaaaaaaaaaai/stellaria-mastodon-streaming
       # Do not use cache when building releases, so apt update is always ran and the release always contain the latest packages
       cache: false
-      # Only tag with latest when ran against the latest stable branch
-      # This needs to be updated after each minor version release
+      version_metadata: ${{ needs.check-latest-stable.outputs.metadata }}
+      # Manual releases update latest; tag pushes use the latest stable check.
       flavor: |
         latest=${{ needs.check-latest-stable.outputs.latest }}
-      tags: |
-        type=pep440,pattern={{raw}}
-        type=pep440,pattern=v{{major}}.{{minor}}
+      tags: ${{ needs.check-latest-stable.outputs.tags }}
     secrets: inherit
