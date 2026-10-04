@@ -93,7 +93,7 @@ class PostStatusService < BaseService
 
   def process_status!
     @status = @account.statuses.new(status_attributes)
-    process_mentions_service.call(@status)
+    process_mentions!(@status)
     safeguard_mentions!(@status)
     safeguard_private_mention_quote!(@status)
     attach_tagged_objects!(@status)
@@ -145,6 +145,10 @@ class PostStatusService < BaseService
 
   def schedule_status!
     status_for_validation = @account.statuses.build(status_attributes)
+    if ValidateRuridotInteractionService.guarded?(@account)
+      process_mentions!(status_for_validation)
+      safeguard_mentions!(status_for_validation)
+    end
     safeguard_private_mention_quote!(status_for_validation)
 
     antispam = Antispam.new(status_for_validation)
@@ -213,6 +217,14 @@ class PostStatusService < BaseService
 
   def process_mentions_service
     ProcessMentionsService.new
+  end
+
+  def process_mentions!(status)
+    service = process_mentions_service
+    service.call(status)
+    return unless ValidateRuridotInteractionService.guarded?(@account)
+
+    ValidateRuridotInteractionService.new.call(status, quoted_status: @quoted_status, unresolved_mentions: service.unresolved_mentions)
   end
 
   def process_hashtags_service

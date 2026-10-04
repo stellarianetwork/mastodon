@@ -101,4 +101,23 @@ RSpec.describe ProcessMentionsService do
       end
     end
   end
+
+  context 'when deferring the dirty status save' do
+    let(:recipient) { Fabricate(:account) }
+    let(:status) { Fabricate(:status, account: account, text: 'Original') }
+
+    it 'keeps text dirty without a status save or update callback while resolving mention rows' do
+      status.text = "@#{recipient.acct} Changed"
+      allow(status).to receive(:save!).and_call_original
+      allow(status).to receive(:trigger_update_webhooks).and_call_original
+
+      subject.call(status, persist_status: false)
+
+      expect(status).to_not have_received(:save!)
+      expect(status).to_not have_received(:trigger_update_webhooks)
+      expect(status.will_save_change_to_text?).to be true
+      expect(Status.find(status.id).text).to eq 'Original'
+      expect(status.mentions.reload.pluck(:account_id)).to eq [recipient.id]
+    end
+  end
 end
