@@ -1,11 +1,6 @@
 name: Build container release images
 on:
   workflow_dispatch:
-    inputs:
-      release_number:
-        description: 'Stellaria release number (positive integer, for example 1)'
-        required: true
-        type: string
   push:
     tags:
       - '*'
@@ -13,6 +8,10 @@ on:
 permissions:
   contents: read
   packages: write
+
+concurrency:
+  group: release-images
+  cancel-in-progress: false
 
 jobs:
   check-latest-stable:
@@ -33,16 +32,46 @@ jobs:
         id: check
         env:
           EVENT_NAME: ${{ github.event_name }}
-          RELEASE_NUMBER: ${{ inputs.release_number }}
         run: |
-          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
-            if [[ ! "$RELEASE_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
-              echo '::error::Release number must be a positive integer.'
+          next_release_number() (
+            set -euo pipefail
+            version=${1:?Expected an upstream version}
+            shift
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || $# == 0 ]]; then
+              echo 'Expected an upstream version and Docker repositories.' >&2
               exit 1
             fi
 
+            highest=0
+            for repository in "$@"; do
+              url="https://hub.docker.com/v2/namespaces/${repository/\//\/repositories\/}/tags?page_size=100"
+              while [[ -n "$url" ]]; do
+                page=$(curl --fail --silent --show-error --max-time 30 "$url")
+                number=$(jq --exit-status --arg prefix "v${version}-stellaria." '
+                  if type != "object" or (.results | type) != "array" or
+                    (has("next") | not) or (.next != null and (.next | type) != "string") or
+                    any(.results[]; (.name | type) != "string") then
+                    error("Invalid Docker Hub tag response")
+                  else
+                    [.results[].name | select(startswith($prefix)) | ltrimstr($prefix) |
+                      select(test("^[1-9][0-9]*$")) | tonumber] | max // 0 |
+                    if . >= 9007199254740991 then error("Release number exceeds exact integer range") else . end
+                  end
+                ' <<< "$page")
+                if (( number > highest )); then
+                  highest=$number
+                fi
+                url=$(jq --raw-output '.next // empty' <<< "$page")
+              done
+            done
+            echo "$((highest + 1))"
+          )
+
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
             version=$(ruby -r ./lib/mastodon/version.rb -e 'puts Mastodon::Version.to_a.join(".")')
-            image_tag="v${version}-stellaria.${RELEASE_NUMBER}"
+            release_number=$(next_release_number "$version" \
+              eaaaaaaaaaaai/stellaria-mastodon eaaaaaaaaaaai/stellaria-mastodon-streaming)
+            image_tag="v${version}-stellaria.${release_number}"
             if (( ${#image_tag} > 128 )); then
               echo '::error::Release number produces a Docker tag longer than 128 characters.'
               exit 1
@@ -50,7 +79,7 @@ jobs:
 
             {
               echo "tags=type=raw,value=$image_tag"
-              echo "metadata=stellaria.$RELEASE_NUMBER"
+              echo "metadata=stellaria.$release_number"
               echo 'is_latest_stable=true'
             } >> "$GITHUB_OUTPUT"
             exit 0
