@@ -392,6 +392,26 @@ RSpec.describe Account do
     end
   end
 
+  describe '#emojis' do
+    # Misskeyはプロフィール名をMFMのHTML変換を通さずそのまま送るため、ショートコードがくっついたまま届く
+    subject { Fabricate(:account, domain: 'misskey.example', display_name: display_name).emojis }
+
+    let!(:coolcat) { Fabricate(:custom_emoji, shortcode: 'coolcat', domain: 'misskey.example') }
+    let!(:hotcat) { Fabricate(:custom_emoji, shortcode: 'hotcat', domain: 'misskey.example') }
+
+    context 'with concatenated shortcodes in the display name' do
+      let(:display_name) { ':coolcat::hotcat:' }
+
+      it { is_expected.to contain_exactly(coolcat, hotcat) }
+    end
+
+    context 'with a shortcode directly after other characters in the display name' do
+      let(:display_name) { 'Alice:coolcat: あ:hotcat:' }
+
+      it { is_expected.to contain_exactly(coolcat, hotcat) }
+    end
+  end
+
   describe 'MENTION_RE' do
     subject { described_class::MENTION_RE }
 
