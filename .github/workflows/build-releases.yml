@@ -1,14 +1,14 @@
 name: Build container release images
 on:
   workflow_dispatch:
-    inputs:
-      release_number:
-        description: 'Stellaria release number (positive integer, for example 1)'
-        required: true
-        type: string
   push:
     tags:
       - '*'
+
+# Manual releases pick the next number from Docker Hub, so they must not overlap.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && 'dispatch' || github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -33,24 +33,49 @@ jobs:
         id: check
         env:
           EVENT_NAME: ${{ github.event_name }}
-          RELEASE_NUMBER: ${{ inputs.release_number }}
         run: |
           if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
-            if [[ ! "$RELEASE_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
-              echo '::error::Release number must be a positive integer.'
+            version=$(ruby -r ./lib/mastodon/version.rb -e 'puts Mastodon::Version.to_a.join(".")')
+            prefix="v${version}-stellaria."
+
+            # Both images are always released together, so their latest numbers must match.
+            release_numbers=()
+            for repository in eaaaaaaaaaaai/stellaria-mastodon eaaaaaaaaaaai/stellaria-mastodon-streaming; do
+              response=$(curl --fail --silent --show-error --get \
+                --data-urlencode "name=$prefix" \
+                --data-urlencode 'page_size=100' \
+                "https://hub.docker.com/v2/repositories/$repository/tags")
+
+              # Paging is not implemented because 100 releases of one upstream version is not expected.
+              if [[ $(jq -r '.next' <<< "$response") != null ]]; then
+                echo "::error::$repository has more than 100 tags matching $prefix."
+                exit 1
+              fi
+
+              release_numbers+=("$(jq -r --arg prefix "$prefix" '
+                [.results[].name
+                  | select(startswith($prefix))
+                  | ltrimstr($prefix)
+                  | select(test("^[1-9][0-9]*$"))
+                  | tonumber]
+                | max // 0' <<< "$response")")
+            done
+
+            if [[ "${release_numbers[0]}" != "${release_numbers[1]}" ]]; then
+              echo "::error::Latest release numbers differ between images (${release_numbers[0]} and ${release_numbers[1]})."
               exit 1
             fi
 
-            version=$(ruby -r ./lib/mastodon/version.rb -e 'puts Mastodon::Version.to_a.join(".")')
-            image_tag="v${version}-stellaria.${RELEASE_NUMBER}"
+            release_number=$((release_numbers[0] + 1))
+            image_tag="${prefix}${release_number}"
             if (( ${#image_tag} > 128 )); then
-              echo '::error::Release number produces a Docker tag longer than 128 characters.'
+              echo "::error::Docker tag $image_tag is longer than 128 characters."
               exit 1
             fi
 
             {
               echo "tags=type=raw,value=$image_tag"
-              echo "metadata=stellaria.$RELEASE_NUMBER"
+              echo "metadata=stellaria.$release_number"
               echo 'is_latest_stable=true'
             } >> "$GITHUB_OUTPUT"
             exit 0
