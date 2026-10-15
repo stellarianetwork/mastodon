@@ -41,8 +41,35 @@ RSpec.describe EmojiFormatter do
     context 'when given text with concatenated emoji shortcodes' do
       let(:text) { preformat_text(':coolcat::coolcat:') }
 
-      it 'does not touch the shortcodes' do
-        expect(subject).to include(':coolcat::coolcat:')
+      it 'converts both shortcodes to image tags' do
+        expect(subject.scan('alt=":coolcat:"').size).to eq 2
+        expect(subject).to_not include(':coolcat::coolcat:')
+      end
+    end
+
+    context 'when given text with an emoji shortcode directly after alphanumeric characters' do
+      let(:text) { preformat_text('Beep:coolcat: あ:coolcat:') }
+
+      it 'converts the shortcodes to image tags' do
+        expect(subject).to include('Beep<img rel="emoji"')
+        expect(subject).to include('あ<img rel="emoji"')
+      end
+    end
+
+    context 'when given text with an emoji shortcode followed by an ASCII alphanumeric character' do
+      let(:text) { preformat_text(':coolcat:boop') }
+
+      it 'does not touch the shortcode' do
+        expect(subject).to include(':coolcat:boop')
+        expect(subject).to_not include('<img')
+      end
+    end
+
+    context 'when given text with an unknown shortcode before a known one' do
+      let(:text) { preformat_text(':unknown::coolcat:') }
+
+      it 'converts only the known shortcode' do
+        expect(subject).to include(':unknown:<img rel="emoji"')
       end
     end
 

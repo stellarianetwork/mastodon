@@ -31,9 +31,9 @@ class CustomEmoji < ApplicationRecord
 
   SHORTCODE_RE_FRAGMENT = '[a-zA-Z0-9_]{2,}'
 
-  SCAN_RE = /(?<=[^[:alnum:]:]|\n|^)
-    :(#{SHORTCODE_RE_FRAGMENT}):
-    (?=[^[:alnum:]:]|$)/x
+  # Misskey（mfm.js）の判定に合わせ、`:foo::bar:`や`a:foo:`も絵文字として扱う。
+  # 直前の文字は問わず、直後がASCII英数字の場合（`10:30:45`の`:30:`など）だけ除外する。
+  SCAN_RE = /:(#{SHORTCODE_RE_FRAGMENT}):(?![a-zA-Z0-9])/
   SHORTCODE_ONLY_RE = /\A#{SHORTCODE_RE_FRAGMENT}\z/
 
   IMAGE_MIME_TYPES = %w(image/png image/gif image/webp).freeze

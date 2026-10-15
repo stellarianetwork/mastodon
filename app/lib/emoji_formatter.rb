@@ -3,8 +3,6 @@
 class EmojiFormatter
   include RoutingHelper
 
-  DISALLOWED_BOUNDING_REGEX = /[[:alnum:]:]/
-
   attr_reader :html, :custom_emojis, :options
 
   # @param [ActiveSupport::SafeBuffer] html
@@ -34,31 +32,22 @@ class EmojiFormatter
     end
 
     tree.xpath('./text()|.//text()[not(ancestor[@class="invisible"])]').to_a.each do |node|
-      i                     = -1
-      inside_shortname      = false
-      shortname_start_index = -1
-      last_index            = 0
-      text                  = node.content
-      result                = Nokogiri::XML::NodeSet.new(tree.document)
+      last_index = 0
+      text       = node.content
+      result     = Nokogiri::XML::NodeSet.new(tree.document)
 
-      while i + 1 < text.size
-        i += 1
+      # APIの`emojis`と同じ判定にするため、CustomEmoji::SCAN_REで走査する
+      text.scan(CustomEmoji::SCAN_RE) do
+        match     = Regexp.last_match
+        shortcode = match[1]
+        emoji     = emoji_map[shortcode]
 
-        if inside_shortname && text[i] == ':'
-          inside_shortname = false
-          shortcode = text[(shortname_start_index + 1)..(i - 1)]
-          char_after = text[i + 1]
+        next if emoji.nil?
 
-          next unless (char_after.nil? || !DISALLOWED_BOUNDING_REGEX.match?(char_after)) && (emoji = emoji_map[shortcode])
+        result << tree.document.create_text_node(text[last_index...match.begin(0)]) if match.begin(0) > last_index
+        result << tree.document.fragment(tag_for_emoji(shortcode, emoji))
 
-          result << tree.document.create_text_node(text[last_index..(shortname_start_index - 1)]) if shortname_start_index.positive?
-          result << tree.document.fragment(tag_for_emoji(shortcode, emoji))
-
-          last_index = i + 1
-        elsif text[i] == ':' && (i.zero? || !DISALLOWED_BOUNDING_REGEX.match?(text[i - 1]))
-          inside_shortname = true
-          shortname_start_index = i
-        end
+        last_index = match.end(0)
       end
 
       result << tree.document.create_text_node(text[last_index..])
