@@ -76,6 +76,34 @@ RSpec.describe CustomEmoji, :attachment_processing do
         expect(subject).to include(emojo)
       end
     end
+
+    context 'with misskey-style shortcodes' do
+      let!(:other_emojo) { Fabricate(:custom_emoji, shortcode: 'hotcat') }
+
+      it 'returns records used via concatenated shortcodes' do
+        expect(described_class.from_text('<p>:coolcat::hotcat:</p>', nil)).to contain_exactly(emojo, other_emojo)
+      end
+
+      it 'returns records used via shortcodes surrounded by colons' do
+        expect(described_class.from_text('::coolcat::', nil)).to contain_exactly(emojo)
+      end
+
+      it 'returns records used via shortcodes directly after alphanumeric characters' do
+        expect(described_class.from_text('a:coolcat: あ:hotcat:', nil)).to contain_exactly(emojo, other_emojo)
+      end
+
+      it 'returns records used via shortcodes directly before non-ASCII characters' do
+        expect(described_class.from_text(':coolcat:あ', nil)).to contain_exactly(emojo)
+      end
+
+      it 'skips a shortcode followed by an ASCII alphanumeric character and returns the next one' do
+        expect(described_class.from_text(':coolcat:hotcat:', nil)).to contain_exactly(other_emojo)
+      end
+
+      it 'does not return records for shortcodes followed by ASCII alphanumeric characters' do
+        expect(described_class.from_text(':coolcat:a', nil)).to be_empty
+      end
+    end
   end
 
   describe 'Normalizations' do
